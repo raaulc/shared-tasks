@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Circle,
   Copy,
+  FolderPlus,
+  List,
   LogIn,
   LogOut,
   Menu,
@@ -16,6 +18,13 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+type Category = {
+  id: string;
+  household_id: string;
+  name: string;
+  created_at: string;
+};
+
 type Task = {
   id: string;
   title: string;
@@ -23,6 +32,7 @@ type Task = {
   assigned_to: string | null;
   household_id: string;
   user_email: string;
+  category_id: string | null;
   created_at: string;
 };
 
@@ -37,6 +47,10 @@ export default function Home() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userFullName, setUserFullName] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
@@ -72,23 +86,54 @@ export default function Home() {
       .join(" ");
   };
 
-  const loadTasks = useCallback(async (household: string) => {
-    setIsLoadingTasks(true);
+  const loadCategories = useCallback(async (household: string) => {
     const { data, error } = await supabase
-      .from("tasks")
+      .from("categories")
       .select("*")
       .eq("household_id", household)
       .order("created_at", { ascending: false });
 
     if (error) {
-      setMessage(`Unable to load tasks: ${error.message}`);
-      setIsLoadingTasks(false);
+      if (error.message.includes("does not exist")) {
+        setMessage(
+          "Run supabase-livelist.sql in Supabase to enable livelists.",
+        );
+        setCategories([]);
+        return;
+      }
+      setMessage(`Unable to load categories: ${error.message}`);
       return;
     }
 
-    setTasks((data ?? []) as Task[]);
-    setIsLoadingTasks(false);
+    setCategories((data ?? []) as Category[]);
   }, []);
+
+  const loadTasks = useCallback(
+    async (household: string, categoryId: string | null) => {
+      setIsLoadingTasks(true);
+      let query = supabase
+        .from("tasks")
+        .select("*")
+        .eq("household_id", household)
+        .order("created_at", { ascending: false });
+
+      if (categoryId) {
+        query = query.eq("category_id", categoryId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        setMessage(`Unable to load tasks: ${error.message}`);
+        setIsLoadingTasks(false);
+        return;
+      }
+
+      setTasks((data ?? []) as Task[]);
+      setIsLoadingTasks(false);
+    },
+    [],
+  );
 
   const createHouseholdForProfile = useCallback(
     async (profileId: string, email: string) => {
@@ -231,6 +276,32 @@ export default function Home() {
     setHouseholdName(resolvedName);
     setHouseholdNameDraft(resolvedName);
   }, []);
+
+  const createCategory = useCallback(
+    async (name: string) => {
+      if (!householdId) return;
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      setIsAddingCategory(true);
+      setMessage(null);
+
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({ household_id: householdId, name: trimmed })
+        .select("id")
+        .single();
+
+      if (error) {
+        setMessage(`Unable to create list: ${error.message}`);
+      } else if (data?.id) {
+        setNewCategoryName("");
+        setSelectedCategoryId(data.id);
+      }
+
+      setIsAddingCategory(false);
+    },
+    [householdId],
+  );
 
   const loadMembers = useCallback(async (household: string) => {
     const { data, error } = await supabase
@@ -375,6 +446,7 @@ export default function Home() {
   useEffect(() => {
     if (!householdId) {
       setTasks([]);
+      setCategories([]);
       setMembers([]);
       setInviteCode(null);
       setHouseholdName(null);
@@ -383,7 +455,22 @@ export default function Home() {
 
     loadHousehold(householdId);
     loadMembers(householdId);
-    loadTasks(householdId);
+    loadCategories(householdId);
+  }, [householdId, loadHousehold, loadMembers, loadCategories]);
+
+  useEffect(() => {
+    if (
+      selectedCategoryId &&
+      !categories.some((c) => c.id === selectedCategoryId)
+    ) {
+      setSelectedCategoryId(null);
+    }
+  }, [categories, selectedCategoryId]);
+
+  useEffect(() => {
+    if (!householdId) return;
+
+    loadTasks(householdId, selectedCategoryId);
 
     const channel = supabase
       .channel("tasks-realtime")
@@ -396,18 +483,28 @@ export default function Home() {
           filter: `household_id=eq.${householdId}`,
         },
         (payload) => {
+          const task = payload.new as Task | undefined;
+          const oldTask = payload.old as Task | undefined;
+          if (selectedCategoryId && task?.category_id !== selectedCategoryId && oldTask?.category_id !== selectedCategoryId) {
+            if (payload.eventType === "INSERT") return;
+            if (payload.eventType === "DELETE") return;
+          }
           setTasks((current) => {
             const eventType = payload.eventType;
             if (eventType === "INSERT") {
-              return [payload.new as Task, ...current];
+              const newTask = payload.new as Task;
+              if (selectedCategoryId && newTask.category_id !== selectedCategoryId) return current;
+              return [newTask, ...current];
             }
             if (eventType === "UPDATE") {
-              return current.map((task) =>
-                task.id === payload.new.id ? (payload.new as Task) : task,
-              );
+              const updated = payload.new as Task;
+              if (selectedCategoryId && updated.category_id !== selectedCategoryId) {
+                return current.filter((t) => t.id !== updated.id);
+              }
+              return current.map((t) => (t.id === updated.id ? updated : t));
             }
             if (eventType === "DELETE") {
-              return current.filter((task) => task.id !== payload.old.id);
+              return current.filter((task) => task.id !== (payload.old as { id: string }).id);
             }
             return current;
           });
@@ -418,7 +515,43 @@ export default function Home() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [householdId, loadHousehold, loadMembers, loadTasks]);
+  }, [householdId, selectedCategoryId, loadTasks]);
+
+  useEffect(() => {
+    if (!householdId) return;
+
+    const channel = supabase
+      .channel("categories-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "categories",
+          filter: `household_id=eq.${householdId}`,
+        },
+        (payload) => {
+          setCategories((current) => {
+            const eventType = payload.eventType;
+            if (eventType === "INSERT") return [(payload.new as Category), ...current];
+            if (eventType === "UPDATE") {
+              return current.map((c) =>
+                c.id === payload.new.id ? (payload.new as Category) : c,
+              );
+            }
+            if (eventType === "DELETE") {
+              return current.filter((c) => c.id !== (payload.old as { id: string }).id);
+            }
+            return current;
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [householdId, selectedCategoryId]);
 
   const handleGoogleSignIn = async () => {
     setMessage(null);
@@ -441,6 +574,8 @@ export default function Home() {
     setUserId(null);
     setUserFullName(null);
     setHouseholdId(null);
+    setCategories([]);
+    setSelectedCategoryId(null);
     setMembers([]);
     setInviteCode(null);
     setHouseholdName(null);
@@ -448,6 +583,7 @@ export default function Home() {
 
   const handleAddTask = async () => {
     if (!sessionEmail || !householdId || !newTask.trim()) return;
+    if (!selectedCategoryId) return;
     setIsSaving(true);
     setMessage(null);
 
@@ -456,6 +592,7 @@ export default function Home() {
       user_email: sessionEmail,
       is_completed: false,
       household_id: householdId,
+      category_id: selectedCategoryId,
     });
 
     if (error) {
@@ -734,10 +871,10 @@ export default function Home() {
             <div className="hidden items-start justify-between gap-4 md:flex">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">
-                  Family
+                  Livelist
                 </p>
                 <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                  Shared Tasks
+                  Shared Lists
                 </h1>
               </div>
               {sessionEmail && isAllowed ? (
@@ -790,25 +927,89 @@ export default function Home() {
             ) : !householdId ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
                 <p className="text-sm text-slate-500">
-                  Join a household to see shared tasks.
-                </p>
-              </div>
-            ) : isLoadingTasks ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-slate-500">Loading tasks...</p>
-              </div>
-            ) : tasks.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                <p className="text-sm text-slate-500">
-                  No tasks yet. Add one below!
+                  Join a household to see shared lists.
                 </p>
               </div>
             ) : (
-              tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
-                >
+              <>
+                <div className="flex flex-col gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
+                    Your livelists
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedCategoryId(
+                            selectedCategoryId === cat.id ? null : cat.id,
+                          )
+                        }
+                        className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
+                          selectedCategoryId === cat.id
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        <List className="h-4 w-4" />
+                        {cat.name}
+                      </button>
+                    ))}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            createCategory(newCategoryName);
+                          }
+                        }}
+                        placeholder="e.g. Groceries 14 Feb"
+                        className="h-10 w-40 rounded-full border border-slate-200 px-4 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => createCategory(newCategoryName)}
+                        disabled={isAddingCategory || !newCategoryName.trim()}
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <FolderPlus className="h-4 w-4" />
+                        Add list
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {!selectedCategoryId ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
+                    <List className="mx-auto h-12 w-12 text-slate-300" />
+                    <p className="mt-3 text-sm font-medium text-slate-600">
+                      Select a list above or create a new one
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      e.g. Groceries 14 Feb, Weekend errands
+                    </p>
+                  </div>
+                ) : isLoadingTasks ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <p className="text-sm text-slate-500">Loading tasks...</p>
+                  </div>
+                ) : tasks.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                    <p className="text-sm text-slate-500">
+                      No items yet. Add one below!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {tasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-slate-300"
+                      >
                   <div className="flex items-center justify-between gap-4">
                     <button
                       type="button"
@@ -880,14 +1081,17 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
-                </div>
-              ))
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
       </main>
 
-      {sessionEmail && isAllowed && householdId ? (
+      {sessionEmail && isAllowed && householdId && selectedCategoryId ? (
         <form
           onSubmit={handleSubmit}
           className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur"
