@@ -70,6 +70,9 @@ export default function Home() {
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [sortFilter, setSortFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"date" | "assignment">("date");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const displayNameFromEmail = (email: string) => {
     const namePart = email.split("@")[0] ?? "";
@@ -752,6 +755,41 @@ export default function Home() {
     }
   };
 
+  const handleSendInvite = async () => {
+    const email = inviteEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setInviteError("Please enter a valid email address.");
+      return;
+    }
+    setInviteError(null);
+    setIsInviting(true);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) {
+        setInviteError("Please sign in again and retry.");
+        return;
+      }
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setInviteError(json.error ?? "Failed to send invite.");
+        return;
+      }
+      setInviteEmail("");
+      setMessage("Invite sent!");
+      setTimeout(() => setMessage(null), 2000);
+    } catch {
+      setInviteError("Something went wrong. Please try again.");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   const handleHouseholdNameSave = async () => {
     if (!householdId) return;
     const trimmed = householdNameDraft.trim();
@@ -1032,6 +1070,30 @@ export default function Home() {
                   Copy
                 </button>
               </div>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={inviteEmail}
+                  onChange={(e) => {
+                    setInviteEmail(e.target.value);
+                    setInviteError(null);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
+                  className="flex-1 rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#5034ff] focus:outline-none focus:ring-1 focus:ring-[#5034ff]"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendInvite}
+                  disabled={isInviting || !inviteEmail.trim()}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#5034ff] px-3 py-2 text-xs font-semibold text-white hover:bg-[#4028e6] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isInviting ? "Sending…" : "Send invite"}
+                </button>
+              </div>
+              {inviteError ? (
+                <p className="mt-2 text-xs text-rose-600">{inviteError}</p>
+              ) : null}
               {isJoining ? (
                 <p className="mt-2 text-xs text-[#323338]/50">Joining workspace...</p>
               ) : null}
