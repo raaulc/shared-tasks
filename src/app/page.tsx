@@ -85,16 +85,8 @@ export default function Home() {
   };
 
   const assigneeValueForMember = useCallback((m: Member) => {
-    if (m.email === "rahulcode19@gmail.com") return "Rahul";
-    if (m.email === "riddhi.icct@gmail.com") return "Wife";
     return m.full_name || (m.email ? displayNameFromEmail(m.email) : "Unknown");
   }, []);
-
-  const currentUserAssigneeValue = useMemo(() => {
-    if (sessionEmail === "rahulcode19@gmail.com") return "Rahul";
-    if (sessionEmail === "riddhi.icct@gmail.com") return "Wife";
-    return sessionEmail ? displayNameFromEmail(sessionEmail) : null;
-  }, [sessionEmail]);
 
   const isAllowed = useMemo(() => {
     if (!sessionEmail) return false;
@@ -716,7 +708,7 @@ export default function Home() {
     }
   };
 
-  const handleAssignTask = async (task: Task, assignee: string) => {
+  const handleAssignTask = async (task: Task, assignee: string | null) => {
     setMessage(null);
     setTasks((current) =>
       current.map((item) =>
@@ -739,10 +731,23 @@ export default function Home() {
     }
   };
 
-  const creatorLabel = (email: string) =>
-    email === "rahulcode19@gmail.com" ? "Rahul" : "Wife";
-  const creatorInitials = (email: string) =>
-    email === "rahulcode19@gmail.com" ? "R" : "W";
+  const getInitialsForEmail = useCallback(
+    (email: string) => {
+      const m = members.find((x) => x.email === email);
+      if (m?.full_name) {
+        const initials = m.full_name
+          .split(/\s+/)
+          .map((w) => w[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+        return initials || "?";
+      }
+      const name = displayNameFromEmail(email);
+      return name ? name[0].toUpperCase() : "?";
+    },
+    [members],
+  );
 
   const handleCopyLink = async () => {
     if (!inviteLink) return;
@@ -1253,25 +1258,14 @@ export default function Home() {
                           className="rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
                         >
                           <option value="all">All</option>
-                          {currentUserAssigneeValue && (
-                            <option value={currentUserAssigneeValue}>Me</option>
-                          )}
-                          {members
-                            .filter(
-                              (m) =>
-                                assigneeValueForMember(m) !== currentUserAssigneeValue,
-                            )
-                            .map((m) => {
-                              const val = assigneeValueForMember(m);
-                              const label =
-                                m.full_name ||
-                                (m.email ? displayNameFromEmail(m.email) : val);
-                              return (
-                                <option key={val} value={val}>
-                                  {label}
-                                </option>
-                              );
-                            })}
+                          {members.map((m) => {
+                            const val = assigneeValueForMember(m);
+                            return (
+                              <option key={m.email ?? val} value={val}>
+                                {val}
+                              </option>
+                            );
+                          })}
                           <option value="unassigned">Unassigned</option>
                         </select>
                       </div>
@@ -1296,7 +1290,7 @@ export default function Home() {
                     {filteredAndSortedTasks.length === 0 ? (
                       <div className="rounded-lg border border-[#e6e9ef] bg-white py-10 text-center">
                         <p className="text-sm text-[#323338]/60">
-                          No items match "{sortFilter === currentUserAssigneeValue ? "Me" : sortFilter === "unassigned" ? "Unassigned" : sortFilter}"
+                          No items match "{sortFilter === "unassigned" ? "Unassigned" : sortFilter}"
                         </p>
                         <button
                           type="button"
@@ -1333,33 +1327,36 @@ export default function Home() {
                           </span>
                         </button>
                         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleAssignTask(task, "Rahul")}
-                              className={`rounded px-2.5 py-1 text-xs font-medium ${
-                                task.assigned_to === "Rahul"
-                                  ? "bg-[#5034ff] text-white"
-                                  : "bg-[#e6e9ef] text-[#323338] hover:bg-[#c5c7d0]"
-                              }`}
-                            >
-                              Me
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAssignTask(task, "Wife")}
-                              className={`rounded px-2.5 py-1 text-xs font-medium ${
-                                task.assigned_to === "Wife"
-                                  ? "bg-[#5034ff] text-white"
-                                  : "bg-[#e6e9ef] text-[#323338] hover:bg-[#c5c7d0]"
-                              }`}
-                            >
-                              Wife
-                            </button>
-                          </div>
+                          <select
+                            value={task.assigned_to ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              handleAssignTask(task, v === "" ? null : v);
+                            }}
+                            className="rounded border border-[#e6e9ef] bg-white px-2.5 py-1 text-xs font-medium text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-1 focus:ring-[#5034ff]"
+                          >
+                            <option value="">Unassigned</option>
+                            {members.map((m) => {
+                              const val = assigneeValueForMember(m);
+                              return (
+                                <option key={m.email ?? val} value={val}>
+                                  {val}
+                                </option>
+                              );
+                            })}
+                            {/* Include legacy assignee values so old tasks display correctly */}
+                            {task.assigned_to &&
+                              !members.some(
+                                (m) => assigneeValueForMember(m) === task.assigned_to,
+                              ) && (
+                                <option value={task.assigned_to}>
+                                  {task.assigned_to}
+                                </option>
+                              )}
+                          </select>
                           <div className="flex items-center gap-2 text-[#323338]/50">
                             <span className="text-xs">
-                              {creatorInitials(task.user_email)} · {task.assigned_to ?? "Unassigned"}
+                              {getInitialsForEmail(task.user_email)} · {task.assigned_to ?? "Unassigned"}
                             </span>
                             <button
                               type="button"
