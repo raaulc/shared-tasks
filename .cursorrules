@@ -1,0 +1,24 @@
+# Project Context
+You are building a shared task management web app for a husband and wife. 
+The goal is extreme simplicity and mobile-friendliness.
+
+# Tech Stack
+- Framework: Next.js 15+ (App Router)
+- Language: TypeScript
+- Styling: Tailwind CSS
+- Backend/Auth: Supabase
+- Icons: Lucide React
+
+# Shared Task Logic
+- Use a single 'tasks' table in Supabase.
+- Implement real-time subscriptions using supabase.channel() so updates sync instantly between two devices.
+- All tasks must be associated with the user's email.
+
+# UI Preferences
+- Mobile-first design.
+- Use clean, modern cards for tasks.
+- Keep the 'Add Task' input fixed at the bottom for easy thumb access.
+
+# Authentication
+- Strictly use Google OAuth via Supabase.
+- Implement a whitelist check: only allow 'rahulcode19@gmail.com' and 'riddhi.icct@gmail.com'.
