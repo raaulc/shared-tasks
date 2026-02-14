@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ArrowDownAZ,
   CheckCircle2,
   Circle,
   Copy,
@@ -69,38 +68,8 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
-  const [sortFilter, setSortFilter] = useState<"all" | "me" | "wife" | "unassigned">("all");
+  const [sortFilter, setSortFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"date" | "assignment">("date");
-
-  const isAllowed = useMemo(() => {
-    if (!sessionEmail) return false;
-    return ALLOWED_EMAILS.includes(sessionEmail);
-  }, [sessionEmail]);
-
-  const inviteLink = useMemo(() => {
-    if (!inviteCode) return null;
-    return `family-task.app/join?code=${inviteCode}`;
-  }, [inviteCode]);
-
-  const filteredAndSortedTasks = useMemo(() => {
-    let list = [...tasks];
-    if (sortFilter === "me") {
-      list = list.filter((t) => t.assigned_to === "Rahul");
-    } else if (sortFilter === "wife") {
-      list = list.filter((t) => t.assigned_to === "Wife");
-    } else if (sortFilter === "unassigned") {
-      list = list.filter((t) => !t.assigned_to || t.assigned_to === "Unassigned");
-    }
-    if (sortOrder === "assignment") {
-      const order = (a: Task, b: Task) => {
-        const rank = (x: string | null) =>
-          x === "Rahul" ? 0 : x === "Wife" ? 1 : 2;
-        return rank(a.assigned_to) - rank(b.assigned_to);
-      };
-      list.sort(order);
-    }
-    return list;
-  }, [tasks, sortFilter, sortOrder]);
 
   const displayNameFromEmail = (email: string) => {
     const namePart = email.split("@")[0] ?? "";
@@ -111,6 +80,57 @@ export default function Home() {
       .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
       .join(" ");
   };
+
+  const assigneeValueForMember = useCallback((m: Member) => {
+    if (m.email === "rahulcode19@gmail.com") return "Rahul";
+    if (m.email === "riddhi.icct@gmail.com") return "Wife";
+    return m.full_name || (m.email ? displayNameFromEmail(m.email) : "Unknown");
+  }, []);
+
+  const currentUserAssigneeValue = useMemo(() => {
+    if (sessionEmail === "rahulcode19@gmail.com") return "Rahul";
+    if (sessionEmail === "riddhi.icct@gmail.com") return "Wife";
+    return sessionEmail ? displayNameFromEmail(sessionEmail) : null;
+  }, [sessionEmail]);
+
+  const isAllowed = useMemo(() => {
+    if (!sessionEmail) return false;
+    return ALLOWED_EMAILS.includes(sessionEmail);
+  }, [sessionEmail]);
+
+  const [appOrigin, setAppOrigin] = useState("");
+
+  useEffect(() => {
+    setAppOrigin(
+      process.env.NEXT_PUBLIC_APP_URL ||
+        (typeof window !== "undefined" ? window.location.origin : ""),
+    );
+  }, []);
+
+  const inviteLink = useMemo(() => {
+    if (!inviteCode || !appOrigin) return null;
+    const base = appOrigin.replace(/\/$/, "");
+    return `${base}/join?code=${inviteCode}`;
+  }, [inviteCode, appOrigin]);
+
+  const filteredAndSortedTasks = useMemo(() => {
+    let list = [...tasks];
+    if (sortFilter && sortFilter !== "all") {
+      if (sortFilter === "unassigned") {
+        list = list.filter((t) => !t.assigned_to || t.assigned_to === "Unassigned");
+      } else {
+        list = list.filter((t) => t.assigned_to === sortFilter);
+      }
+    }
+    if (sortOrder === "assignment") {
+      list.sort((a, b) => {
+        const aVal = a.assigned_to ?? "zzz";
+        const bVal = b.assigned_to ?? "zzz";
+        return aVal.localeCompare(bVal);
+      });
+    }
+    return list;
+  }, [tasks, sortFilter, sortOrder]);
 
   const loadCategories = useCallback(async (household: string) => {
     const { data, error } = await supabase
@@ -1159,64 +1179,62 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <div className="mb-4 flex flex-wrap items-center gap-2">
-                      <span className="flex items-center gap-1.5 text-xs font-medium text-[#323338]/60">
-                        <ArrowDownAZ className="h-3.5 w-3.5" />
-                        Sort by:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {(["all", "me", "wife", "unassigned"] as const).map((key) => (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => setSortFilter(key)}
-                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                              sortFilter === key
-                                ? "bg-[#5034ff] text-white"
-                                : "bg-white text-[#323338]/70 shadow-sm hover:bg-[#f6f7fb]"
-                            }`}
-                          >
-                            {key === "all"
-                              ? "All"
-                              : key === "me"
-                                ? "Me"
-                                : key === "wife"
-                                  ? "Wife"
-                                  : "Unassigned"}
-                          </button>
-                        ))}
+                    <div className="mb-4 flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="filter-assignee" className="text-xs font-medium text-[#323338]/60">
+                          Assigned to
+                        </label>
+                        <select
+                          id="filter-assignee"
+                          value={sortFilter}
+                          onChange={(e) => setSortFilter(e.target.value)}
+                          className="rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
+                        >
+                          <option value="all">All</option>
+                          {currentUserAssigneeValue && (
+                            <option value={currentUserAssigneeValue}>Me</option>
+                          )}
+                          {members
+                            .filter(
+                              (m) =>
+                                assigneeValueForMember(m) !== currentUserAssigneeValue,
+                            )
+                            .map((m) => {
+                              const val = assigneeValueForMember(m);
+                              const label =
+                                m.full_name ||
+                                (m.email ? displayNameFromEmail(m.email) : val);
+                              return (
+                                <option key={val} value={val}>
+                                  {label}
+                                </option>
+                              );
+                            })}
+                          <option value="unassigned">Unassigned</option>
+                        </select>
                       </div>
-                      <span className="mx-2 text-[#323338]/30">|</span>
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setSortOrder("date")}
-                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                            sortOrder === "date"
-                              ? "bg-[#e6e9ef] text-[#323338]"
-                              : "text-[#323338]/60 hover:bg-[#f6f7fb]"
-                          }`}
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="sort-order" className="text-xs font-medium text-[#323338]/60">
+                          Sort by
+                        </label>
+                        <select
+                          id="sort-order"
+                          value={sortOrder}
+                          onChange={(e) =>
+                            setSortOrder(e.target.value as "date" | "assignment")
+                          }
+                          className="rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
                         >
-                          Newest
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSortOrder("assignment")}
-                          className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                            sortOrder === "assignment"
-                              ? "bg-[#e6e9ef] text-[#323338]"
-                              : "text-[#323338]/60 hover:bg-[#f6f7fb]"
-                          }`}
-                        >
-                          By assignee
-                        </button>
+                          <option value="date">Newest first</option>
+                          <option value="assignment">By assignee</option>
+                        </select>
                       </div>
                     </div>
                     <div className="space-y-2">
                     {filteredAndSortedTasks.length === 0 ? (
                       <div className="rounded-lg border border-[#e6e9ef] bg-white py-10 text-center">
                         <p className="text-sm text-[#323338]/60">
-                          No items match "{sortFilter === "me" ? "Me" : sortFilter === "wife" ? "Wife" : "Unassigned"}"
+                          No items match "{sortFilter === currentUserAssigneeValue ? "Me" : sortFilter === "unassigned" ? "Unassigned" : sortFilter}"
                         </p>
                         <button
                           type="button"
