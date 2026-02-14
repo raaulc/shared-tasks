@@ -1,5 +1,11 @@
 [build]
   command = "npm run build"
 
+# Redirect /join?code=X to /?code=X (query params preserved automatically)
+[[redirects]]
+  from = "/join"
+  to = "/"
+  status = 302
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
