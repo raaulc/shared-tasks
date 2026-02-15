@@ -34,8 +34,20 @@ with check (
 -- 5) Update tasks policy to allow category_id filter (no change needed - policy uses household_id)
 -- Tasks with null category_id remain visible; new tasks should have category_id
 
--- 6) Add categories to realtime
-alter publication supabase_realtime add table categories;
+-- 6) Add tables to realtime (required for live updates without refresh)
+-- REPLICA IDENTITY FULL ensures DELETE events include full row so household_id filter works
+alter table tasks replica identity full;
+alter table categories replica identity full;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'tasks') then
+    alter publication supabase_realtime add table tasks;
+  end if;
+  if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'categories') then
+    alter publication supabase_realtime add table categories;
+  end if;
+end $$;
 
 -- 7) Add member colors (stored per profile, any household member can update)
 alter table profiles add column if not exists color text default null;
