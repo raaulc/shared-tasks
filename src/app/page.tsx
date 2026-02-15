@@ -6,7 +6,7 @@ import {
   Circle,
   Copy,
   FolderPlus,
-  Home,
+  Home as HomeIcon,
   Link2,
   List,
   LogIn,
@@ -449,25 +449,6 @@ export default function Home() {
     return trimmed;
   }, []);
 
-  const handleJoinWithLink = useCallback(async () => {
-    const code = extractInviteCode(joinLinkInput);
-    if (!code || !userId) {
-      setMessage("Paste a valid invite link or code.");
-      return;
-    }
-    await joinHousehold(code, userId);
-    setJoinLinkInput("");
-    setSetHomeStep("choose");
-  }, [extractInviteCode, joinHousehold, joinLinkInput, userId]);
-
-  const handleCreateHome = useCallback(async () => {
-    if (!userId) return;
-    await createHousehold(userId, newHomeName || "Our Home");
-    setNewHomeName("");
-    setSetHomeStep("choose");
-    setShowShareLink(true);
-  }, [createHousehold, newHomeName, userId]);
-
   const joinHousehold = useCallback(
     async (code: string, profileId: string) => {
       setIsJoining(true);
@@ -504,6 +485,25 @@ export default function Home() {
     },
     [],
   );
+
+  const handleJoinWithLink = useCallback(async () => {
+    const code = extractInviteCode(joinLinkInput);
+    if (!code || !userId) {
+      setMessage("Paste a valid invite link or code.");
+      return;
+    }
+    await joinHousehold(code, userId);
+    setJoinLinkInput("");
+    setSetHomeStep("choose");
+  }, [extractInviteCode, joinHousehold, joinLinkInput, userId]);
+
+  const handleCreateHome = useCallback(async () => {
+    if (!userId) return;
+    await createHousehold(userId, newHomeName || "Our Home");
+    setNewHomeName("");
+    setSetHomeStep("choose");
+    setShowShareLink(true);
+  }, [createHousehold, newHomeName, userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1531,7 +1531,7 @@ export default function Home() {
               <div className="mx-auto flex max-w-md flex-col gap-6 rounded-xl border border-[#e2e6e3] bg-white p-8 shadow-sm">
                 <div className="text-center">
                   <div className="mx-auto mb-4 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-3">
-                    <Home className="h-10 w-10 text-[#8a9a5b]" />
+                    <HomeIcon className="h-10 w-10 text-[#8a9a5b]" />
                   </div>
                   <h2 className="text-xl font-semibold text-[#323338]">
                     Set up your home
@@ -1557,7 +1557,7 @@ export default function Home() {
                       onClick={() => setSetHomeStep("create")}
                       className="flex items-center gap-3 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5"
                     >
-                      <Home className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                      <HomeIcon className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
                       <span className="font-medium text-[#323338]">Create a new home</span>
                       <span className="text-sm text-[#323338]/50">Start from scratch</span>
                     </button>
