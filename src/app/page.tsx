@@ -77,6 +77,8 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editingTaskTitle, setEditingTaskTitle] = useState("");
   const [sortFilter, setSortFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"date" | "assignment">("date");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -772,6 +774,36 @@ export default function Home() {
       event: "task-deleted",
       payload: { taskId: task.id },
     });
+  };
+
+  const handleUpdateTask = async (taskId: string, newTitle: string) => {
+    const trimmed = newTitle.trim();
+    if (!trimmed) return;
+    const previousTitle = tasks.find((t) => t.id === taskId)?.title ?? "";
+    setMessage(null);
+    setTasks((current) =>
+      current.map((item) =>
+        item.id === taskId ? { ...item, title: trimmed } : item,
+      ),
+    );
+    setEditingTaskId(null);
+    setEditingTaskTitle("");
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ title: trimmed })
+      .eq("id", taskId);
+
+    if (error) {
+      setMessage(`Unable to update task: ${error.message}`);
+      setTasks((current) =>
+        current.map((item) =>
+          item.id === taskId ? { ...item, title: previousTitle } : item,
+        ),
+      );
+      setEditingTaskId(taskId);
+      setEditingTaskTitle(trimmed);
+    }
   };
 
   const handleAssignTask = async (task: Task, assignee: string | null) => {
@@ -1543,15 +1575,59 @@ export default function Home() {
                           ) : (
                             <Circle className="h-5 w-5 text-[#c5c7d0]" />
                           )}
-                          <span
-                            className={`text-sm font-medium ${
-                              task.is_completed
-                                ? "text-[#323338]/50 line-through"
-                                : "text-[#323338]"
-                            }`}
-                          >
-                            {task.title}
-                          </span>
+                          {editingTaskId === task.id ? (
+                            <input
+                              type="text"
+                              value={editingTaskTitle}
+                              onChange={(e) => setEditingTaskTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleUpdateTask(task.id, editingTaskTitle);
+                                }
+                                if (e.key === "Escape") {
+                                  setEditingTaskId(null);
+                                  setEditingTaskTitle("");
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              onBlur={() => {
+                                if (editingTaskTitle.trim()) {
+                                  handleUpdateTask(task.id, editingTaskTitle);
+                                } else {
+                                  setEditingTaskId(null);
+                                  setEditingTaskTitle("");
+                                }
+                              }}
+                              autoFocus
+                              className="min-w-[120px] rounded border border-[#8a9a5b] bg-white px-2 py-1 text-sm font-medium text-[#323338] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/40"
+                            />
+                          ) : (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onDoubleClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingTaskId(task.id);
+                                setEditingTaskTitle(task.title);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setEditingTaskId(task.id);
+                                  setEditingTaskTitle(task.title);
+                                }
+                              }}
+                              className={`cursor-text text-sm font-medium ${
+                                task.is_completed
+                                  ? "text-[#323338]/50 line-through"
+                                  : "text-[#323338]"
+                              }`}
+                            >
+                              {task.title}
+                            </span>
+                          )}
                         </button>
                         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
                           <select
@@ -1610,6 +1686,18 @@ export default function Home() {
                                 })()}
                               </span>
                             ) : null}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTaskId(task.id);
+                                setEditingTaskTitle(task.title);
+                              }}
+                              className="rounded p-1.5 text-[#323338]/50 transition hover:bg-[#8a9a5b]/10 hover:text-[#8a9a5b]"
+                              aria-label="Edit"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
                             <button
                               type="button"
                               onClick={() => setDeleteTask(task)}
