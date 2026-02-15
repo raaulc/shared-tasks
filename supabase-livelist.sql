@@ -51,3 +51,41 @@ end $$;
 
 -- 7) Add member colors (stored per profile, any household member can update)
 alter table profiles add column if not exists color text default null;
+
+-- 8) Multi-workspace: household_members junction table
+create table if not exists household_members (
+  profile_id uuid not null references profiles(id) on delete cascade,
+  household_id uuid not null references households(id) on delete cascade,
+  primary key (profile_id, household_id)
+);
+
+-- Migrate existing profiles.household_id into household_members
+insert into household_members (profile_id, household_id)
+select id, household_id from profiles where household_id is not null
+on conflict (profile_id, household_id) do nothing;
+
+-- RLS: users can read household_members for their own profile
+alter table household_members enable row level security;
+
+drop policy if exists "Users can read own memberships" on household_members;
+create policy "Users can read own memberships"
+on household_members for select
+to authenticated
+using (auth.uid() = profile_id);
+
+drop policy if exists "Users can insert own memberships" on household_members;
+create policy "Users can insert own memberships"
+on household_members for insert
+to authenticated
+with check (auth.uid() = profile_id);
+
+drop policy if exists "Household members can delete memberships" on household_members;
+create policy "Household members can delete memberships"
+on household_members for delete
+to authenticated
+using (
+  auth.uid() = profile_id
+  or exists (
+    select 1 from profiles p where p.id = auth.uid() and p.household_id = household_members.household_id
+  )
+);

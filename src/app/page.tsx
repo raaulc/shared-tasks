@@ -47,6 +47,11 @@ type Member = {
   color: string | null;
 };
 
+type Workspace = {
+  id: string;
+  name: string;
+};
+
 const DEFAULT_MEMBER_COLORS = [
   "#8a9a5b", "#00c875", "#fdab3d", "#e44258", "#579bfc",
   "#6b7b4b", "#9ab06d", "#f9d648", "#7a8f5a", "#a25ddc",
@@ -89,6 +94,8 @@ export default function Home() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [joinWorkspaceInput, setJoinWorkspaceInput] = useState("");
   const deleteBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const displayNameFromEmail = (email: string) => {
@@ -233,9 +240,19 @@ export default function Home() {
         return;
       }
 
+      await supabase.from("household_members").upsert(
+        { profile_id: profileId, household_id: household.id },
+        { onConflict: "profile_id,household_id" },
+      );
+
       setHouseholdId(household.id);
       setInviteCode(household.invite_code ?? inviteCode);
       setHouseholdName(name.trim() || "Our Home");
+      setWorkspaces((prev) => {
+        const exists = prev.some((w) => w.id === household.id);
+        if (exists) return prev;
+        return [...prev, { id: household.id, name: name.trim() || "Our Home" }];
+      });
     },
     [],
   );
@@ -436,6 +453,38 @@ export default function Home() {
     })));
   }, []);
 
+  const loadUserWorkspaces = useCallback(async (profileId: string) => {
+    const { data: memberships, error: memError } = await supabase
+      .from("household_members")
+      .select("household_id")
+      .eq("profile_id", profileId);
+
+    if (memError) {
+      if (memError.message.includes("does not exist")) return;
+      setMessage(`Unable to load workspaces: ${memError.message}`);
+      return;
+    }
+
+    const ids = (memberships ?? []).map((m) => m.household_id);
+    if (ids.length === 0) {
+      setWorkspaces([]);
+      return;
+    }
+
+    const { data: houses, error: houseError } = await supabase
+      .from("households")
+      .select("id, name")
+      .in("id", ids);
+
+    if (houseError) {
+      setWorkspaces(ids.map((id) => ({ id, name: "Our Home" })));
+      return;
+    }
+
+    const byId = new Map((houses ?? []).map((h) => [h.id, h.name ?? "Our Home"]));
+    setWorkspaces(ids.map((id) => ({ id, name: byId.get(id) ?? "Our Home" })));
+  }, []);
+
   const extractInviteCode = useCallback((input: string) => {
     const trimmed = input.trim();
     if (!trimmed) return null;
@@ -457,12 +506,25 @@ export default function Home() {
 
       const { data, error } = await supabase
         .from("households")
-        .select("id, invite_code")
+        .select("id, invite_code, name")
         .eq("invite_code", code)
         .single();
 
       if (error || !data?.id) {
         setMessage("That invite code is not valid.");
+        setIsJoining(false);
+        return;
+      }
+
+      const { error: memberError } = await supabase
+        .from("household_members")
+        .upsert(
+          { profile_id: profileId, household_id: data.id },
+          { onConflict: "profile_id,household_id" },
+        );
+
+      if (memberError) {
+        setMessage(`Unable to join workspace: ${memberError.message}`);
         setIsJoining(false);
         return;
       }
@@ -473,15 +535,21 @@ export default function Home() {
         .eq("id", profileId);
 
       if (updateError) {
-        setMessage(`Unable to join household: ${updateError.message}`);
+        setMessage(`Unable to switch workspace: ${updateError.message}`);
         setIsJoining(false);
         return;
       }
 
       setHouseholdId(data.id);
       setInviteCode(data.invite_code ?? null);
+      setHouseholdName(data.name ?? "Our Home");
+      setWorkspaces((prev) => {
+        const exists = prev.some((w) => w.id === data.id);
+        if (exists) return prev;
+        return [...prev, { id: data.id, name: data.name ?? "Our Home" }];
+      });
       window.history.replaceState({}, "", window.location.pathname);
-      setMessage("Joined household successfully.");
+      setMessage("Joined workspace successfully.");
       setIsJoining(false);
     },
     [],
@@ -505,6 +573,41 @@ export default function Home() {
     setSetHomeStep("choose");
     setShowShareLink(true);
   }, [createHousehold, newHomeName, userId]);
+
+  const handleSwitchWorkspace = useCallback(
+    async (workspace: Workspace) => {
+      if (!userId || workspace.id === householdId) return;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ household_id: workspace.id })
+        .eq("id", userId);
+
+      if (error) {
+        setMessage(`Unable to switch: ${error.message}`);
+        return;
+      }
+
+      setHouseholdId(workspace.id);
+      setHouseholdName(workspace.name);
+      setInviteCode(null);
+      setCategories([]);
+      setSelectedCategoryId(null);
+      setTasks([]);
+      setMembers([]);
+      setIsSettingsOpen(false);
+    },
+    [householdId, userId],
+  );
+
+  const handleJoinFromSettings = useCallback(async () => {
+    const code = extractInviteCode(joinWorkspaceInput);
+    if (!code || !userId) {
+      setMessage("Paste a valid invite link or code.");
+      return;
+    }
+    await joinHousehold(code, userId);
+    setJoinWorkspaceInput("");
+  }, [extractInviteCode, joinHousehold, joinWorkspaceInput, userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -558,7 +661,8 @@ export default function Home() {
 
     setMessage(null);
     loadProfile(userId, sessionEmail, userFullName);
-  }, [loadProfile, sessionEmail, userFullName, userId]);
+    loadUserWorkspaces(userId);
+  }, [loadProfile, loadUserWorkspaces, sessionEmail, userFullName, userId]);
 
   useEffect(() => {
     if (!sessionEmail || !userId) return;
@@ -900,15 +1004,28 @@ export default function Home() {
       const assigneeValue = assigneeValueForMember(member);
       const isSelf = member.id === userId;
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ household_id: null })
-        .eq("id", member.id);
+      const { error: deleteError } = await supabase
+        .from("household_members")
+        .delete()
+        .eq("profile_id", member.id)
+        .eq("household_id", householdId);
 
-      if (profileError) {
-        setMessage(`Unable to remove member: ${profileError.message}`);
+      if (deleteError) {
+        setMessage(`Unable to remove member: ${deleteError.message}`);
         return;
       }
+
+      const { data: remaining } = await supabase
+        .from("household_members")
+        .select("household_id")
+        .eq("profile_id", member.id)
+        .limit(1);
+
+      const newHouseholdId = remaining?.[0]?.household_id ?? null;
+      await supabase
+        .from("profiles")
+        .update({ household_id: newHouseholdId })
+        .eq("id", member.id);
 
       const { error: taskError } = await supabase
         .from("tasks")
@@ -926,19 +1043,27 @@ export default function Home() {
           t.assigned_to === assigneeValue ? { ...t, assigned_to: null } : t,
         ),
       );
+      setWorkspaces((prev) => prev.filter((w) => w.id !== householdId || !isSelf));
 
       if (isSelf) {
-        setHouseholdId(null);
+        setHouseholdId(newHouseholdId);
         setInviteCode(null);
-        setHouseholdName(null);
         setIsSettingsOpen(false);
+        if (newHouseholdId) {
+          loadHousehold(newHouseholdId);
+          loadMembers(newHouseholdId);
+          loadCategories(newHouseholdId);
+        } else {
+          setCategories([]);
+          setTasks([]);
+        }
       }
 
       setDeleteMember(null);
-      setMessage(isSelf ? "You left the household." : "Member removed.");
+      setMessage(isSelf ? "You left the workspace." : "Member removed.");
       setTimeout(() => setMessage(null), 2000);
     },
-    [assigneeValueForMember, householdId, userId],
+    [assigneeValueForMember, householdId, loadCategories, loadHousehold, loadMembers, userId],
   );
 
   const handleCopyLink = async () => {
@@ -1301,6 +1426,63 @@ export default function Home() {
             </button>
           </div>
           <div className="mt-6 flex flex-col gap-6">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
+                Workspaces
+              </p>
+              {workspaces.length > 0 ? (
+                <div className="mt-2 flex flex-col gap-1.5">
+                  {workspaces.map((w) => (
+                    <button
+                      key={w.id}
+                      type="button"
+                      onClick={() => handleSwitchWorkspace(w)}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition ${
+                        w.id === householdId
+                          ? "border-[#8a9a5b] bg-[#8a9a5b]/10 text-[#323338]"
+                          : "border-[#e2e6e3] bg-[#f8f9f6] text-[#323338]/80 hover:border-[#8a9a5b]/50"
+                      }`}
+                    >
+                      <span className="font-medium">{w.name}</span>
+                      {w.id === householdId && (
+                        <span className="text-xs text-[#8a9a5b]">Current</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-[#323338]/50">No workspaces yet</p>
+              )}
+              <div className="mt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
+                  Join another workspace
+                </p>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="text"
+                    value={joinWorkspaceInput}
+                    onChange={(e) => {
+                      setJoinWorkspaceInput(e.target.value);
+                      setMessage(null);
+                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleJoinFromSettings()}
+                    placeholder="Paste invite link or code"
+                    className="flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleJoinFromSettings}
+                    disabled={isJoining || !joinWorkspaceInput.trim()}
+                    className="shrink-0 rounded-lg bg-[#8a9a5b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-50"
+                  >
+                    {isJoining ? "Joining…" : "Join"}
+                  </button>
+                </div>
+                {isJoining && (
+                  <p className="mt-2 text-xs text-[#323338]/50">Joining workspace...</p>
+                )}
+              </div>
+            </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
                 Invite to workspace
