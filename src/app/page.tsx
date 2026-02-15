@@ -15,6 +15,7 @@ import {
   Settings,
   Sparkles,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -898,6 +899,55 @@ export default function Home() {
     event.preventDefault();
     await handleAddTask();
   };
+
+  if (!sessionEmail || !isAllowed) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#f8f7ff] via-white to-[#f6f7fb] text-[#323338]">
+        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-16">
+          <div className="text-center">
+            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-[#5034ff]/10 p-4">
+              <List className="h-12 w-12 text-[#5034ff]" />
+            </div>
+            <h1 className="text-4xl font-bold tracking-tight text-[#323338] sm:text-5xl">
+              Livelist
+            </h1>
+            <p className="mt-4 text-xl text-[#323338]/70 sm:text-2xl">
+              Shared lists for families. Keep everyone in sync.
+            </p>
+            <p className="mt-6 max-w-xl text-[#323338]/60">
+              Create boards, assign tasks, and get things done together. Real-time updates across all your devices.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
+              <div className="flex items-center gap-2 text-sm text-[#323338]/60">
+                <CheckCircle2 className="h-5 w-5 text-[#00c875]" />
+                Real-time sync
+              </div>
+              <div className="flex items-center gap-2 text-sm text-[#323338]/60">
+                <Users className="h-5 w-5 text-[#5034ff]" />
+                Assign to family
+              </div>
+              <div className="flex items-center gap-2 text-sm text-[#323338]/60">
+                <Copy className="h-5 w-5 text-[#5034ff]" />
+                Invite by link
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={isInitializing}
+              className="mt-12 inline-flex items-center gap-3 rounded-xl bg-[#5034ff] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#5034ff]/25 transition hover:bg-[#4028e6] hover:shadow-[#5034ff]/30 disabled:opacity-70"
+            >
+              <LogIn className="h-6 w-6" />
+              {isInitializing ? "Loading…" : "Sign in with Google"}
+            </button>
+            <p className="mt-6 text-xs text-[#323338]/50">
+              Use your family email to get started
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f7fb] text-[#323338]">
