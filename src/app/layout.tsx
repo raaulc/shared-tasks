@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Livelist — Shared lists for families",
-  description: "Keep your household in sync. Share tasks, assign items, and get things done together.",
+  title: "Olivelist — Shared lists for families",
+  description: "Reduce household chaos through real-time, shared organization. Share tasks, assign to family, and get things done together.",
 };
 
 export default function RootLayout({

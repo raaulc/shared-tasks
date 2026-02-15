@@ -81,14 +81,14 @@ export async function POST(request: Request) {
   const inviteLink = `${baseUrl.replace(/\/$/, "")}/join?code=${household.invite_code}`;
 
   const { error: sendError } = await resend.emails.send({
-    from: "Livelist <onboarding@resend.dev>",
+    from: "Olivelist <onboarding@resend.dev>",
     to: [email],
     subject: `You're invited to join ${household.name ?? "our household"}`,
     html: `
       <p>Hi!</p>
-      <p>You've been invited to join <strong>${household.name ?? "our household"}</strong> on Livelist.</p>
+      <p>You've been invited to join <strong>${household.name ?? "our household"}</strong> on Olivelist.</p>
       <p>Click the link below to join:</p>
-      <p><a href="${inviteLink}" style="color: #5034ff; font-weight: 600;">${inviteLink}</a></p>
+      <p><a href="${inviteLink}" style="color: #8a9a5b; font-weight: 600;">${inviteLink}</a></p>
       <p>If you didn't expect this invite, you can ignore this email.</p>
     `,
   });

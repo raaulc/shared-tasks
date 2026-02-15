@@ -46,8 +46,8 @@ type Member = {
 };
 
 const DEFAULT_MEMBER_COLORS = [
-  "#5034ff", "#00c875", "#fdab3d", "#e44258", "#579bfc",
-  "#6b47ed", "#00c875", "#f9d648", "#ffcb00", "#a25ddc",
+  "#8a9a5b", "#00c875", "#fdab3d", "#e44258", "#579bfc",
+  "#6b7b4b", "#9ab06d", "#f9d648", "#7a8f5a", "#a25ddc",
 ];
 
 const ALLOWED_EMAILS = ["rahulcode19@gmail.com", "riddhi.icct@gmail.com"];
@@ -107,7 +107,7 @@ export default function Home() {
     (assigneeValue: string | null) => {
       const idx = members.findIndex((m) => assigneeValueForMember(m) === assigneeValue);
       if (idx >= 0) return getColorForMember(members[idx], idx);
-      return "#94a3b8";
+      return "#8a9a6b";
     },
     [members, assigneeValueForMember, getColorForMember],
   );
@@ -564,7 +564,7 @@ export default function Home() {
   useEffect(() => {
     if (!householdId || categories.length === 0) return;
     if (selectedCategoryId) return;
-    const stored = localStorage.getItem(`livelist:board:${householdId}`);
+    const stored = localStorage.getItem(`olivelist:board:${householdId}`);
     if (stored && categories.some((c) => c.id === stored)) {
       setSelectedCategoryId(stored);
     }
@@ -572,7 +572,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!householdId || !selectedCategoryId) return;
-    localStorage.setItem(`livelist:board:${householdId}`, selectedCategoryId);
+    localStorage.setItem(`olivelist:board:${householdId}`, selectedCategoryId);
   }, [householdId, selectedCategoryId]);
 
   useEffect(() => {
@@ -916,14 +916,14 @@ export default function Home() {
 
   if (!sessionEmail || !isAllowed) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#f8f7ff] via-white to-[#f6f7fb] text-[#323338]">
+      <div className="min-h-screen bg-gradient-to-b from-[#f0f2ed] via-white to-[#f8f9f6] text-[#323338]">
         <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-16">
           <div className="text-center">
-            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-[#5034ff]/10 p-4">
-              <List className="h-12 w-12 text-[#5034ff]" />
+            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-4">
+              <List className="h-12 w-12 text-[#8a9a5b]" />
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-[#323338] sm:text-5xl">
-              Livelist
+              Olivelist
             </h1>
             <p className="mt-4 text-xl text-[#323338]/70 sm:text-2xl">
               Shared lists for families. Keep everyone in sync.
@@ -937,11 +937,11 @@ export default function Home() {
                 Real-time sync
               </div>
               <div className="flex items-center gap-2 text-sm text-[#323338]/60">
-                <Users className="h-5 w-5 text-[#5034ff]" />
+                <Users className="h-5 w-5 text-[#8a9a5b]" />
                 Assign to family
               </div>
               <div className="flex items-center gap-2 text-sm text-[#323338]/60">
-                <Copy className="h-5 w-5 text-[#5034ff]" />
+                <Copy className="h-5 w-5 text-[#8a9a5b]" />
                 Invite by link
               </div>
             </div>
@@ -949,7 +949,7 @@ export default function Home() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isInitializing}
-              className="mt-12 inline-flex items-center gap-3 rounded-xl bg-[#5034ff] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#5034ff]/25 transition hover:bg-[#4028e6] hover:shadow-[#5034ff]/30 disabled:opacity-70"
+              className="mt-12 inline-flex items-center gap-3 rounded-xl bg-[#8a9a5b] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#8a9a5b]/25 transition hover:bg-[#6b7b4b] hover:shadow-[#8a9a5b]/30 disabled:opacity-70"
             >
               <LogIn className="h-6 w-6" />
               {isInitializing ? "Loading…" : "Sign in with Google"}
@@ -964,9 +964,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f7fb] text-[#323338]">
+    <div className="min-h-screen bg-[#f8f9f6] text-[#323338]">
       <main className="relative flex min-h-screen w-full flex-col pb-24 md:flex-row">
-        <div className="flex items-center justify-between border-b border-[#e6e9ef] bg-white px-4 py-3 md:hidden">
+        <div className="flex items-center justify-between border-b border-[#e2e6e3] bg-white px-4 py-3 md:hidden">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
@@ -1006,7 +1006,7 @@ export default function Home() {
         />
 
         <aside
-          className={`fixed left-0 top-0 z-50 h-full w-64 transform bg-[#2d2d2d] p-5 transition md:static md:z-auto md:h-auto md:translate-x-0 ${
+          className={`fixed left-0 top-0 z-50 h-full w-64 transform bg-[#3d4a47] p-5 transition md:static md:z-auto md:h-auto md:translate-x-0 ${
             isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -1046,13 +1046,13 @@ export default function Home() {
                     value={householdNameDraft}
                     onChange={(e) => setHouseholdNameDraft(e.target.value)}
                     placeholder="Workspace name"
-                    className="rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-[#5034ff]"
+                    className="rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-[#8a9a5b]"
                   />
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleHouseholdNameSave}
-                      className="rounded-lg bg-[#5034ff] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4028e6]"
+                      className="rounded-lg bg-[#8a9a5b] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#6b7b4b]"
                     >
                       Save
                     </button>
@@ -1106,7 +1106,7 @@ export default function Home() {
                       key={cat.id}
                       className={`group flex items-center gap-2 rounded-lg transition ${
                         selectedCategoryId === cat.id
-                          ? "bg-[#5034ff]"
+                          ? "bg-[#8a9a5b]"
                           : "hover:bg-white/10"
                       }`}
                     >
@@ -1151,7 +1151,7 @@ export default function Home() {
                         }
                       }}
                       placeholder="New board..."
-                      className="w-full min-w-0 rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-[#5034ff]"
+                      className="w-full min-w-0 rounded-lg border-0 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:ring-2 focus:ring-[#8a9a5b]"
                     />
                     <button
                       type="button"
@@ -1183,12 +1183,12 @@ export default function Home() {
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-[#e6e9ef] pb-4">
+          <div className="flex items-center justify-between border-b border-[#e2e6e3] pb-4">
             <h2 className="text-lg font-semibold text-[#323338]">Settings</h2>
             <button
               type="button"
               onClick={() => setIsSettingsOpen(false)}
-              className="rounded-lg p-2 text-[#323338]/60 hover:bg-[#f6f7fb]"
+              className="rounded-lg p-2 text-[#323338]/60 hover:bg-[#f8f9f6]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1198,7 +1198,7 @@ export default function Home() {
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
                 Invite to workspace
               </p>
-              <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#e6e9ef] bg-[#f6f7fb] px-3 py-2.5">
+              <div className="mt-2 flex items-center gap-2 rounded-lg border border-[#e2e6e3] bg-[#f8f9f6] px-3 py-2.5">
                 <span className="flex-1 truncate text-sm text-[#323338]">
                   {inviteLink ?? "Invite link not ready"}
                 </span>
@@ -1206,7 +1206,7 @@ export default function Home() {
                   type="button"
                   onClick={handleCopyLink}
                   disabled={!inviteLink}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#5034ff] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4028e6] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Copy
@@ -1222,13 +1222,13 @@ export default function Home() {
                     setInviteError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
-                  className="flex-1 rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#5034ff] focus:outline-none focus:ring-1 focus:ring-[#5034ff]"
+                  className="flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
                 />
                 <button
                   type="button"
                   onClick={handleSendInvite}
                   disabled={isInviting || !inviteEmail.trim()}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#5034ff] px-3 py-2 text-xs font-semibold text-white hover:bg-[#4028e6] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isInviting ? "Sending…" : "Send invite"}
                 </button>
@@ -1252,7 +1252,7 @@ export default function Home() {
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-[#e6e9ef] bg-[#f6f7fb] px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-lg border border-[#e2e6e3] bg-[#f8f9f6] px-3 py-2"
                     >
                       <div className="flex items-center gap-2">
                         <div
@@ -1314,7 +1314,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setDeleteTask(null)}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f6f7fb]"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f8f9f6]"
                 >
                   Cancel
                 </button>
@@ -1362,7 +1362,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setDeleteCategoryId(null)}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f6f7fb]"
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f8f9f6]"
                 >
                   Cancel
                 </button>
@@ -1378,14 +1378,14 @@ export default function Home() {
           </>
         ) : null}
 
-        <section className="flex min-h-screen flex-1 flex-col bg-[#f6f7fb]">
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#e6e9ef] bg-white px-6 py-4">
+        <section className="flex min-h-screen flex-1 flex-col bg-[#f8f9f6]">
+          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#e2e6e3] bg-white px-6 py-4">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-semibold text-[#323338]">
                 {categories.find((c) => c.id === selectedCategoryId)?.name ?? "Shared Lists"}
               </h1>
               {selectedCategoryId && (
-                <span className="rounded-md bg-[#e6e9ef] px-2 py-0.5 text-xs font-medium text-[#323338]/70">
+                <span className="rounded-md bg-[#8a9a5b]/15 px-2.5 py-1 text-xs font-semibold text-[#6b7b4b]">
                   Live
                 </span>
               )}
@@ -1395,7 +1395,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#323338] hover:bg-[#f6f7fb]"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-[#323338] hover:bg-[#f8f9f6]"
                   aria-label="Settings"
                 >
                   <Settings className="h-5 w-5" />
@@ -1425,15 +1425,15 @@ export default function Home() {
                 <p className="text-sm text-[#323338]/60">Loading your workspace...</p>
               </div>
             ) : !sessionEmail || !isAllowed ? (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e6e9ef] bg-white px-8 py-16 text-center">
-                <p className="text-lg font-medium text-[#323338]">Welcome to Livelist</p>
+              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e2e6e3] bg-white px-8 py-16 text-center">
+                <p className="text-lg font-medium text-[#323338]">Welcome to Olivelist</p>
                 <p className="mt-2 text-sm text-[#323338]/60">
                   Sign in with your family email to start sharing lists
                 </p>
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#5034ff] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4028e6]"
+                  className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#8a9a5b] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6b7b4b]"
                 >
                   <LogIn className="h-4 w-4" />
                   Sign in with Google
@@ -1448,7 +1448,7 @@ export default function Home() {
             ) : (
               <>
                 {!selectedCategoryId ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e6e9ef] bg-white py-20 text-center">
+                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e2e6e3] bg-white py-20 text-center">
                     <List className="h-14 w-14 text-[#c5c7d0]" />
                     <p className="mt-4 text-base font-medium text-[#323338]">
                       Select a board from the sidebar
@@ -1462,7 +1462,7 @@ export default function Home() {
                     <p className="text-sm text-[#323338]/60">Loading items...</p>
                   </div>
                 ) : tasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e6e9ef] bg-white py-16 text-center">
+                  <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#e2e6e3] bg-white py-16 text-center">
                     <Plus className="h-12 w-12 text-[#c5c7d0]" />
                     <p className="mt-3 text-sm font-medium text-[#323338]">
                       No items yet
@@ -1482,7 +1482,7 @@ export default function Home() {
                           id="filter-assignee"
                           value={sortFilter}
                           onChange={(e) => setSortFilter(e.target.value)}
-                          className="rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
+                          className="rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
                         >
                           <option value="all">All</option>
                           {members.map((m) => {
@@ -1506,7 +1506,7 @@ export default function Home() {
                           onChange={(e) =>
                             setSortOrder(e.target.value as "date" | "assignment")
                           }
-                          className="rounded-lg border border-[#e6e9ef] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
+                          className="rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
                         >
                           <option value="date">Newest first</option>
                           <option value="assignment">By assignee</option>
@@ -1515,14 +1515,14 @@ export default function Home() {
                     </div>
                     <div className="space-y-2">
                     {filteredAndSortedTasks.length === 0 ? (
-                      <div className="rounded-lg border border-[#e6e9ef] bg-white py-10 text-center">
+                      <div className="rounded-lg border border-[#e2e6e3] bg-white py-10 text-center">
                         <p className="text-sm text-[#323338]/60">
                           No items match "{sortFilter === "unassigned" ? "Unassigned" : sortFilter}"
                         </p>
                         <button
                           type="button"
                           onClick={() => setSortFilter("all")}
-                          className="mt-2 text-xs font-medium text-[#5034ff] hover:underline"
+                          className="mt-2 text-xs font-medium text-[#8a9a5b] hover:underline"
                         >
                           Show all
                         </button>
@@ -1531,7 +1531,7 @@ export default function Home() {
                     filteredAndSortedTasks.map((task) => (
                       <div
                         key={task.id}
-                        className="group flex items-center gap-4 rounded-lg border border-[#e6e9ef] bg-white px-4 py-3 shadow-sm transition hover:border-[#c5c7d0] hover:shadow"
+                        className="group flex items-center gap-4 rounded-xl border border-[#e2e6e3] bg-white px-4 py-3 shadow-sm transition hover:border-[#c5cac6] hover:shadow-md"
                       >
                         <button
                           type="button"
@@ -1560,7 +1560,7 @@ export default function Home() {
                               const v = e.target.value;
                               handleAssignTask(task, v === "" ? null : v);
                             }}
-                            className="rounded border border-[#e6e9ef] bg-white px-2.5 py-1 text-xs font-medium text-[#323338] focus:border-[#5034ff] focus:outline-none focus:ring-1 focus:ring-[#5034ff]"
+                            className="rounded border border-[#e2e6e3] bg-white px-2.5 py-1 text-xs font-medium text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
                           >
                             <option value="">Unassigned</option>
                             {members.map((m) => {
@@ -1635,7 +1635,7 @@ export default function Home() {
       {sessionEmail && isAllowed && householdId && selectedCategoryId ? (
         <form
           onSubmit={handleSubmit}
-          className="fixed bottom-0 left-0 right-0 border-t border-[#e6e9ef] bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] md:left-64"
+          className="fixed bottom-0 left-0 right-0 border-t border-[#e2e6e3] bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] md:left-64"
         >
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <input
@@ -1643,12 +1643,12 @@ export default function Home() {
               value={newTask}
               onChange={(event) => setNewTask(event.target.value)}
               placeholder="Add an item..."
-              className="h-11 flex-1 rounded-lg border border-[#e6e9ef] bg-[#f6f7fb] px-4 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#5034ff] focus:outline-none focus:ring-2 focus:ring-[#5034ff]/20"
+              className="h-11 flex-1 rounded-lg border border-[#e2e6e3] bg-[#f8f9f6] px-4 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
             />
             <button
               type="submit"
               disabled={isSaving || !newTask.trim()}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-[#5034ff] px-5 text-sm font-semibold text-white transition hover:bg-[#4028e6] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-[#8a9a5b] px-5 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               Add
