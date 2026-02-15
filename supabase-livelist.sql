@@ -36,3 +36,6 @@ with check (
 
 -- 6) Add categories to realtime
 alter publication supabase_realtime add table categories;
+
+-- 7) Add member colors (stored per profile, any household member can update)
+alter table profiles add column if not exists color text default null;

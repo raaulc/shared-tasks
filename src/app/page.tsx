@@ -38,9 +38,16 @@ type Task = {
 };
 
 type Member = {
+  id: string;
   email: string | null;
   full_name: string | null;
+  color: string | null;
 };
+
+const DEFAULT_MEMBER_COLORS = [
+  "#5034ff", "#00c875", "#fdab3d", "#e44258", "#579bfc",
+  "#6b47ed", "#00c875", "#f9d648", "#ffcb00", "#a25ddc",
+];
 
 const ALLOWED_EMAILS = ["rahulcode19@gmail.com", "riddhi.icct@gmail.com"];
 
@@ -87,6 +94,20 @@ export default function Home() {
   const assigneeValueForMember = useCallback((m: Member) => {
     return m.full_name || (m.email ? displayNameFromEmail(m.email) : "Unknown");
   }, []);
+
+  const getColorForMember = useCallback((m: Member, index: number) => {
+    if (m.color) return m.color;
+    return DEFAULT_MEMBER_COLORS[index % DEFAULT_MEMBER_COLORS.length];
+  }, []);
+
+  const getColorForAssignee = useCallback(
+    (assigneeValue: string | null) => {
+      const idx = members.findIndex((m) => assigneeValueForMember(m) === assigneeValue);
+      if (idx >= 0) return getColorForMember(members[idx], idx);
+      return "#94a3b8";
+    },
+    [members, assigneeValueForMember, getColorForMember],
+  );
 
   const isAllowed = useMemo(() => {
     if (!sessionEmail) return false;
@@ -369,15 +390,15 @@ export default function Home() {
   const loadMembers = useCallback(async (household: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("email, full_name")
+      .select("id, email, full_name, color")
       .eq("household_id", household)
       .order("full_name", { ascending: true });
 
     if (error) {
-      if (error.message.includes("profiles.full_name does not exist")) {
+      if (error.message.includes("does not exist")) {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("profiles")
-          .select("email")
+          .select("id, email")
           .eq("household_id", household)
           .order("email", { ascending: true });
 
@@ -387,8 +408,10 @@ export default function Home() {
         }
 
         setMembers((fallbackData ?? []).map((item) => ({
+          id: item.id,
           email: item.email ?? null,
           full_name: null,
+          color: null,
         })));
         return;
       }
@@ -397,7 +420,12 @@ export default function Home() {
       return;
     }
 
-    setMembers((data ?? []) as Member[]);
+    setMembers((data ?? []).map((r) => ({
+      id: r.id,
+      email: r.email ?? null,
+      full_name: r.full_name ?? null,
+      color: r.color ?? null,
+    })));
   }, []);
 
   const joinHousehold = useCallback(
@@ -749,6 +777,25 @@ export default function Home() {
     [members],
   );
 
+  const handleUpdateMemberColor = async (memberId: string, color: string) => {
+    if (!userId || memberId !== userId) return;
+    setMessage(null);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ color })
+      .eq("id", memberId);
+
+    if (error) {
+      setMessage(`Unable to update color: ${error.message}`);
+      return;
+    }
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, color } : m)),
+    );
+    setMessage("Color updated.");
+    setTimeout(() => setMessage(null), 2000);
+  };
+
   const handleCopyLink = async () => {
     if (!inviteLink) return;
     try {
@@ -945,10 +992,13 @@ export default function Home() {
                 {members.length === 0 ? (
                   <span className="text-xs text-white/50">No members yet</span>
                 ) : (
-                  members.map((member) => (
+                  members.map((member, idx) => (
                     <span
-                      key={`${member.email ?? "member"}-${member.full_name ?? "name"}`}
-                      className="inline-flex items-center rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-white/90"
+                      key={member.id}
+                      className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-white shadow-sm"
+                      style={{
+                        backgroundColor: getColorForMember(member, idx),
+                      }}
                     >
                       {member.full_name ||
                         (member.email ? displayNameFromEmail(member.email) : "Member")}
@@ -1102,6 +1152,48 @@ export default function Home() {
               {isJoining ? (
                 <p className="mt-2 text-xs text-[#323338]/50">Joining workspace...</p>
               ) : null}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
+                Member colors
+              </p>
+              <div className="mt-2 flex flex-col gap-3">
+                {members.map((m, idx) => {
+                  const val = assigneeValueForMember(m);
+                  const color = getColorForMember(m, idx);
+                  const isCurrentUser = m.email === sessionEmail;
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-[#e6e9ef] bg-[#f6f7fb] px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-6 w-6 shrink-0 rounded-full ring-2 ring-white shadow-sm"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-sm font-medium text-[#323338]">
+                          {val}
+                        </span>
+                      </div>
+                      {isCurrentUser && (
+                        <input
+                          type="color"
+                          value={color}
+                          onChange={(e) =>
+                            handleUpdateMemberColor(m.id, e.target.value)
+                          }
+                          className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+                          title="Change your color"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                {members.length === 0 ? (
+                  <p className="text-xs text-[#323338]/50">No members yet</p>
+                ) : null}
+              </div>
             </div>
           </div>
         </aside>
@@ -1261,7 +1353,7 @@ export default function Home() {
                           {members.map((m) => {
                             const val = assigneeValueForMember(m);
                             return (
-                              <option key={m.email ?? val} value={val}>
+                              <option key={m.id} value={val}>
                                 {val}
                               </option>
                             );
@@ -1339,7 +1431,7 @@ export default function Home() {
                             {members.map((m) => {
                               const val = assigneeValueForMember(m);
                               return (
-                                <option key={m.email ?? val} value={val}>
+                                <option key={m.id} value={val}>
                                   {val}
                                 </option>
                               );
@@ -1349,15 +1441,40 @@ export default function Home() {
                               !members.some(
                                 (m) => assigneeValueForMember(m) === task.assigned_to,
                               ) && (
-                                <option value={task.assigned_to}>
+                                <option key={task.assigned_to} value={task.assigned_to}>
                                   {task.assigned_to}
                                 </option>
                               )}
                           </select>
-                          <div className="flex items-center gap-2 text-[#323338]/50">
-                            <span className="text-xs">
-                              {getInitialsForEmail(task.user_email)} · {task.assigned_to ?? "Unassigned"}
-                            </span>
+                          <div className="flex items-center gap-2">
+                            {task.assigned_to ? (
+                              <span
+                                className="inline-flex h-6 items-center rounded-md px-2 text-xs font-medium text-white shadow-sm"
+                                style={{
+                                  backgroundColor: getColorForAssignee(
+                                    task.assigned_to,
+                                  ),
+                                }}
+                                title={task.assigned_to}
+                              >
+                                {(() => {
+                                  const m = members.find(
+                                    (x) =>
+                                      assigneeValueForMember(x) ===
+                                      task.assigned_to,
+                                  );
+                                  return m
+                                    ? getInitialsForEmail(m.email ?? "")
+                                    : task.assigned_to
+                                        .split(/\s+/)
+                                        .map((w) => w[0])
+                                        .join("")
+                                        .slice(0, 2)
+                                        .toUpperCase() ||
+                                        task.assigned_to.slice(0, 2);
+                                })()}
+                              </span>
+                            ) : null}
                             <button
                               type="button"
                               onClick={() => handleDeleteTask(task)}
