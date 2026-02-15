@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Circle,
@@ -81,6 +81,7 @@ export default function Home() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const deleteBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const displayNameFromEmail = (email: string) => {
     const namePart = email.split("@")[0] ?? "";
@@ -564,7 +565,7 @@ export default function Home() {
 
     loadTasks(householdId, selectedCategoryId);
 
-    const channel = supabase
+    const postgresChannel = supabase
       .channel("tasks-realtime")
       .on(
         "postgres_changes",
@@ -604,8 +605,22 @@ export default function Home() {
       )
       .subscribe();
 
+    const broadcastChannel = supabase
+      .channel(`household:${householdId}:tasks`)
+      .on("broadcast", { event: "task-deleted" }, (payload) => {
+        const taskId = (payload.payload as { taskId?: string })?.taskId;
+        if (taskId) {
+          setTasks((current) => current.filter((t) => t.id !== taskId));
+        }
+      })
+      .subscribe();
+
+    deleteBroadcastRef.current = broadcastChannel;
+
     return () => {
-      supabase.removeChannel(channel);
+      deleteBroadcastRef.current = null;
+      supabase.removeChannel(postgresChannel);
+      supabase.removeChannel(broadcastChannel);
     };
   }, [householdId, selectedCategoryId, loadTasks]);
 
@@ -734,7 +749,14 @@ export default function Home() {
     if (error) {
       setMessage(`Unable to delete task: ${error.message}`);
       setTasks((current) => [task, ...current]);
+      return;
     }
+
+    deleteBroadcastRef.current?.send({
+      type: "broadcast",
+      event: "task-deleted",
+      payload: { taskId: task.id },
+    });
   };
 
   const handleAssignTask = async (task: Task, assignee: string | null) => {
