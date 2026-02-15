@@ -77,6 +77,7 @@ export default function Home() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
+  const [deleteMember, setDeleteMember] = useState<Member | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
   const [setHomeStep, setSetHomeStep] = useState<"choose" | "join" | "create">("choose");
@@ -893,6 +894,53 @@ export default function Home() {
     setTimeout(() => setMessage(null), 2000);
   };
 
+  const handleRemoveMember = useCallback(
+    async (member: Member) => {
+      if (!householdId) return;
+      const assigneeValue = assigneeValueForMember(member);
+      const isSelf = member.id === userId;
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ household_id: null })
+        .eq("id", member.id);
+
+      if (profileError) {
+        setMessage(`Unable to remove member: ${profileError.message}`);
+        return;
+      }
+
+      const { error: taskError } = await supabase
+        .from("tasks")
+        .update({ assigned_to: null })
+        .eq("household_id", householdId)
+        .eq("assigned_to", assigneeValue);
+
+      if (taskError) {
+        setMessage(`Member removed, but some task updates failed.`);
+      }
+
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.assigned_to === assigneeValue ? { ...t, assigned_to: null } : t,
+        ),
+      );
+
+      if (isSelf) {
+        setHouseholdId(null);
+        setInviteCode(null);
+        setHouseholdName(null);
+        setIsSettingsOpen(false);
+      }
+
+      setDeleteMember(null);
+      setMessage(isSelf ? "You left the household." : "Member removed.");
+      setTimeout(() => setMessage(null), 2000);
+    },
+    [assigneeValueForMember, householdId, userId],
+  );
+
   const handleCopyLink = async () => {
     if (!inviteLink) return;
     try {
@@ -1322,17 +1370,28 @@ export default function Home() {
                           {val}
                         </span>
                       </div>
-                      {isCurrentUser && (
-                        <input
-                          type="color"
-                          value={color}
-                          onChange={(e) =>
-                            handleUpdateMemberColor(m.id, e.target.value)
-                          }
-                          className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
-                          title="Change your color"
-                        />
-                      )}
+                      <div className="flex items-center gap-1">
+                        {isCurrentUser && (
+                          <input
+                            type="color"
+                            value={color}
+                            onChange={(e) =>
+                              handleUpdateMemberColor(m.id, e.target.value)
+                            }
+                            className="h-8 w-12 cursor-pointer rounded border-0 bg-transparent p-0"
+                            title="Change your color"
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setDeleteMember(m)}
+                          className="rounded p-1.5 text-[#323338]/50 transition hover:bg-rose-100 hover:text-rose-600"
+                          aria-label={`Remove ${val}`}
+                          title={`Remove ${val}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1386,6 +1445,53 @@ export default function Home() {
                   className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
                 >
                   Delete
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {/* Remove member confirmation modal */}
+        {deleteMember ? (
+          <>
+            <div
+              className="fixed inset-0 z-[60] bg-black/50"
+              onClick={() => setDeleteMember(null)}
+              aria-hidden="true"
+            />
+            <div
+              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100">
+                  <Trash2 className="h-5 w-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#323338]">
+                    Remove member?
+                  </h3>
+                  <p className="mt-1 text-sm text-[#323338]/60">
+                    {deleteMember.id === userId
+                      ? "You will leave this household. Tasks assigned to you will be unassigned."
+                      : `${assigneeValueForMember(deleteMember)} will be removed. Tasks assigned to them will be unassigned.`}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteMember(null)}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f8f9f6]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveMember(deleteMember)}
+                  className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                >
+                  Remove
                 </button>
               </div>
             </div>
