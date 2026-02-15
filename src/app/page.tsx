@@ -6,6 +6,8 @@ import {
   Circle,
   Copy,
   FolderPlus,
+  Home,
+  Link2,
   List,
   LogIn,
   LogOut,
@@ -77,6 +79,10 @@ export default function Home() {
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
+  const [setHomeStep, setSetHomeStep] = useState<"choose" | "join" | "create">("choose");
+  const [joinLinkInput, setJoinLinkInput] = useState("");
+  const [newHomeName, setNewHomeName] = useState("");
+  const [showShareLink, setShowShareLink] = useState(false);
   const [sortFilter, setSortFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"date" | "assignment">("date");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -197,19 +203,21 @@ export default function Home() {
     [],
   );
 
-  const createHouseholdForProfile = useCallback(
-    async (profileId: string, email: string) => {
+  const generateInviteCode = () =>
+    Math.random().toString(36).slice(2, 10);
+
+  const createHousehold = useCallback(
+    async (profileId: string, name: string) => {
+      const inviteCode = generateInviteCode();
       const { data: household, error: householdError } = await supabase
         .from("households")
-        .insert({ name: "Our Home" })
-        .select("id")
+        .insert({ name: name.trim() || "Our Home", invite_code: inviteCode })
+        .select("id, invite_code")
         .single();
 
       if (householdError || !household?.id) {
         setMessage(
-          `Unable to create a household: ${
-            householdError?.message ?? "Unknown error."
-          }`,
+          `Unable to create home: ${householdError?.message ?? "Unknown error."}`,
         );
         return;
       }
@@ -224,8 +232,9 @@ export default function Home() {
         return;
       }
 
-      setSessionEmail(email.toLowerCase());
       setHouseholdId(household.id);
+      setInviteCode(household.invite_code ?? inviteCode);
+      setHouseholdName(name.trim() || "Our Home");
     },
     [],
   );
@@ -268,12 +277,12 @@ export default function Home() {
               return;
             }
 
-            await createHouseholdForProfile(profileId, fallbackEmail);
+            setUserId(profileId);
             return;
           }
 
           if (!fallbackData.household_id) {
-            await createHouseholdForProfile(profileId, fallbackEmail);
+            setUserId(profileId);
             return;
           }
 
@@ -300,7 +309,6 @@ export default function Home() {
           return;
         }
 
-        await createHouseholdForProfile(profileId, emailFromProfile);
         return;
       }
 
@@ -312,13 +320,12 @@ export default function Home() {
       }
 
       if (!data.household_id) {
-        await createHouseholdForProfile(profileId, emailFromProfile);
         return;
       }
 
       setHouseholdId(data.household_id);
     },
-    [createHouseholdForProfile],
+    [],
   );
 
   const loadHousehold = useCallback(async (household: string) => {
@@ -427,6 +434,39 @@ export default function Home() {
       color: r.color ?? null,
     })));
   }, []);
+
+  const extractInviteCode = useCallback((input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith("http") || trimmed.includes("?") || trimmed.includes("=")) {
+      try {
+        const url = new URL(trimmed.startsWith("http") ? trimmed : `https://x/?${trimmed}`);
+        return url.searchParams.get("code");
+      } catch {
+        return null;
+      }
+    }
+    return trimmed;
+  }, []);
+
+  const handleJoinWithLink = useCallback(async () => {
+    const code = extractInviteCode(joinLinkInput);
+    if (!code || !userId) {
+      setMessage("Paste a valid invite link or code.");
+      return;
+    }
+    await joinHousehold(code, userId);
+    setJoinLinkInput("");
+    setSetHomeStep("choose");
+  }, [extractInviteCode, joinHousehold, joinLinkInput, userId]);
+
+  const handleCreateHome = useCallback(async () => {
+    if (!userId) return;
+    await createHousehold(userId, newHomeName || "Our Home");
+    setNewHomeName("");
+    setSetHomeStep("choose");
+    setShowShareLink(true);
+  }, [createHousehold, newHomeName, userId]);
 
   const joinHousehold = useCallback(
     async (code: string, profileId: string) => {
@@ -1438,6 +1478,35 @@ export default function Home() {
             </div>
           ) : null}
 
+          {householdId && showShareLink && inviteLink ? (
+            <div className="mx-6 mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-[#8a9a5b]/30 bg-[#8a9a5b]/5 px-4 py-3">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Link2 className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[#323338]">Share this link to invite family</p>
+                  <p className="mt-0.5 truncate text-xs text-[#323338]/70">{inviteLink}</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b7b4b]"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowShareLink(false)}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-[#323338]/70 hover:bg-[#e2e6e3]"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div className="flex flex-1 flex-col p-6">
             {isInitializing ? (
               <div className="rounded-lg bg-white p-8 shadow-sm">
@@ -1459,10 +1528,109 @@ export default function Home() {
                 </button>
               </div>
             ) : !householdId ? (
-              <div className="rounded-lg bg-white p-8 text-center shadow-sm">
-                <p className="text-sm text-[#323338]/60">
-                  Join a workspace to see shared lists.
-                </p>
+              <div className="mx-auto flex max-w-md flex-col gap-6 rounded-xl border border-[#e2e6e3] bg-white p-8 shadow-sm">
+                <div className="text-center">
+                  <div className="mx-auto mb-4 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-3">
+                    <Home className="h-10 w-10 text-[#8a9a5b]" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-[#323338]">
+                    Set up your home
+                  </h2>
+                  <p className="mt-2 text-sm text-[#323338]/60">
+                    Join an existing home or create a new one to get started
+                  </p>
+                </div>
+
+                {setHomeStep === "choose" ? (
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSetHomeStep("join")}
+                      className="flex items-center gap-3 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5"
+                    >
+                      <Link2 className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                      <span className="font-medium text-[#323338]">Join a home</span>
+                      <span className="text-sm text-[#323338]/50">Paste an invite link</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSetHomeStep("create")}
+                      className="flex items-center gap-3 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5"
+                    >
+                      <Home className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                      <span className="font-medium text-[#323338]">Create a new home</span>
+                      <span className="text-sm text-[#323338]/50">Start from scratch</span>
+                    </button>
+                  </div>
+                ) : setHomeStep === "join" ? (
+                  <div className="flex flex-col gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSetHomeStep("choose")}
+                      className="self-start text-sm font-medium text-[#8a9a5b] hover:underline"
+                    >
+                      ← Back
+                    </button>
+                    <div>
+                      <label htmlFor="join-link" className="block text-sm font-medium text-[#323338]">
+                        Paste invite link or code
+                      </label>
+                      <input
+                        id="join-link"
+                        type="text"
+                        value={joinLinkInput}
+                        onChange={(e) => {
+                          setJoinLinkInput(e.target.value);
+                          setMessage(null);
+                        }}
+                        placeholder="https://.../join?code=xxx or paste code"
+                        className="mt-2 w-full rounded-lg border border-[#e2e6e3] bg-white px-4 py-3 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleJoinWithLink}
+                      disabled={isJoining || !joinLinkInput.trim()}
+                      className="rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
+                    >
+                      {isJoining ? "Joining…" : "Join home"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSetHomeStep("choose")}
+                      className="self-start text-sm font-medium text-[#8a9a5b] hover:underline"
+                    >
+                      ← Back
+                    </button>
+                    <div>
+                      <label htmlFor="home-name" className="block text-sm font-medium text-[#323338]">
+                        Home name
+                      </label>
+                      <input
+                        id="home-name"
+                        type="text"
+                        value={newHomeName}
+                        onChange={(e) => {
+                          setNewHomeName(e.target.value);
+                          setMessage(null);
+                        }}
+                        placeholder="e.g. Smith Family, Our Home"
+                        className="mt-2 w-full rounded-lg border border-[#e2e6e3] bg-white px-4 py-3 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCreateHome}
+                      disabled={!newHomeName.trim()}
+                      className="rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
+                    >
+                      Create home
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <>
