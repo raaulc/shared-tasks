@@ -9,6 +9,7 @@ import {
   Home as HomeIcon,
   Link2,
   List,
+  Loader2,
   LogIn,
   LogOut,
   Menu,
@@ -96,6 +97,14 @@ export default function Home() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [joinWorkspaceInput, setJoinWorkspaceInput] = useState("");
+  const [isCreatingHome, setIsCreatingHome] = useState(false);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
+  const [isSwitchingWorkspace, setIsSwitchingWorkspace] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isUpdatingHouseholdName, setIsUpdatingHouseholdName] = useState(false);
   const deleteBroadcastRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const displayNameFromEmail = (email: string) => {
@@ -367,11 +376,11 @@ export default function Home() {
   const handleDeleteCategory = useCallback(
     async (categoryId: string) => {
       setMessage(null);
+      setIsDeletingCategory(true);
       if (selectedCategoryId === categoryId) {
         setSelectedCategoryId(null);
       }
       setCategories((c) => c.filter((cat) => cat.id !== categoryId));
-      setDeleteCategoryId(null);
 
       const { error } = await supabase
         .from("categories")
@@ -382,6 +391,8 @@ export default function Home() {
         setMessage(`Unable to delete board: ${error.message}`);
         loadCategories(householdId!);
       }
+      setDeleteCategoryId(null);
+      setIsDeletingCategory(false);
     },
     [householdId, loadCategories, selectedCategoryId],
   );
@@ -568,15 +579,21 @@ export default function Home() {
 
   const handleCreateHome = useCallback(async () => {
     if (!userId) return;
-    await createHousehold(userId, newHomeName || "Our Home");
-    setNewHomeName("");
-    setSetHomeStep("choose");
-    setShowShareLink(true);
+    setIsCreatingHome(true);
+    try {
+      await createHousehold(userId, newHomeName || "Our Home");
+      setNewHomeName("");
+      setSetHomeStep("choose");
+      setShowShareLink(true);
+    } finally {
+      setIsCreatingHome(false);
+    }
   }, [createHousehold, newHomeName, userId]);
 
   const handleSwitchWorkspace = useCallback(
     async (workspace: Workspace) => {
       if (!userId || workspace.id === householdId) return;
+      setIsSwitchingWorkspace(true);
       const { error } = await supabase
         .from("profiles")
         .update({ household_id: workspace.id })
@@ -584,6 +601,7 @@ export default function Home() {
 
       if (error) {
         setMessage(`Unable to switch: ${error.message}`);
+        setIsSwitchingWorkspace(false);
         return;
       }
 
@@ -595,6 +613,7 @@ export default function Home() {
       setTasks([]);
       setMembers([]);
       setIsSettingsOpen(false);
+      setIsSwitchingWorkspace(false);
     },
     [householdId, userId],
   );
@@ -811,6 +830,7 @@ export default function Home() {
 
   const handleGoogleSignIn = async () => {
     setMessage(null);
+    setIsSigningIn(true);
     const redirectTo = (
       process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     ).replace(/\/$/, "");
@@ -824,11 +844,13 @@ export default function Home() {
 
     if (error) {
       setMessage(`Google sign-in failed: ${error.message}`);
+      setIsSigningIn(false);
     }
   };
 
   const handleSignOut = async () => {
     setMessage(null);
+    setIsSigningOut(true);
     await supabase.auth.signOut();
     setSessionEmail(null);
     setUserId(null);
@@ -839,6 +861,7 @@ export default function Home() {
     setMembers([]);
     setInviteCode(null);
     setHouseholdName(null);
+    setIsSigningOut(false);
   };
 
   const handleAddTask = async () => {
@@ -891,6 +914,7 @@ export default function Home() {
 
   const handleDeleteTask = async (task: Task) => {
     setMessage(null);
+    setIsDeletingTask(true);
     setTasks((current) => current.filter((item) => item.id !== task.id));
 
     const { error } = await supabase.from("tasks").delete().eq("id", task.id);
@@ -898,6 +922,7 @@ export default function Home() {
     if (error) {
       setMessage(`Unable to delete task: ${error.message}`);
       setTasks((current) => [task, ...current]);
+      setIsDeletingTask(false);
       return;
     }
 
@@ -906,6 +931,8 @@ export default function Home() {
       event: "task-deleted",
       payload: { taskId: task.id },
     });
+    setDeleteTask(null);
+    setIsDeletingTask(false);
   };
 
   const handleUpdateTask = async (taskId: string, newTitle: string) => {
@@ -1001,6 +1028,7 @@ export default function Home() {
   const handleRemoveMember = useCallback(
     async (member: Member) => {
       if (!householdId) return;
+      setIsRemovingMember(true);
       const assigneeValue = assigneeValueForMember(member);
       const isSelf = member.id === userId;
 
@@ -1012,6 +1040,7 @@ export default function Home() {
 
       if (deleteError) {
         setMessage(`Unable to remove member: ${deleteError.message}`);
+        setIsRemovingMember(false);
         return;
       }
 
@@ -1062,6 +1091,7 @@ export default function Home() {
       setDeleteMember(null);
       setMessage(isSelf ? "You left the workspace." : "Member removed.");
       setTimeout(() => setMessage(null), 2000);
+      setIsRemovingMember(false);
     },
     [assigneeValueForMember, householdId, loadCategories, loadHousehold, loadMembers, userId],
   );
@@ -1117,6 +1147,7 @@ export default function Home() {
     const trimmed = householdNameDraft.trim();
     if (!trimmed) return;
     setMessage(null);
+    setIsUpdatingHouseholdName(true);
 
     const previous = householdName;
     setHouseholdName(trimmed);
@@ -1134,6 +1165,7 @@ export default function Home() {
       setTimeout(() => setMessage(null), 2000);
     }
     setIsEditingHouseholdName(false);
+    setIsUpdatingHouseholdName(false);
   };
 
   const handleHouseholdNameEdit = () => {
@@ -1180,11 +1212,15 @@ export default function Home() {
             <button
               type="button"
               onClick={handleGoogleSignIn}
-              disabled={isInitializing}
+              disabled={isInitializing || isSigningIn}
               className="mt-12 inline-flex items-center gap-3 rounded-xl bg-[#8a9a5b] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#8a9a5b]/25 transition hover:bg-[#6b7b4b] hover:shadow-[#8a9a5b]/30 disabled:opacity-70"
             >
-              <LogIn className="h-6 w-6" />
-              {isInitializing ? "Loading…" : "Sign in with Google"}
+              {isSigningIn ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <LogIn className="h-6 w-6" />
+              )}
+              {isInitializing ? "Loading…" : isSigningIn ? "Signing in…" : "Sign in with Google"}
             </button>
             <p className="mt-6 text-xs text-[#323338]/50">
               Use your family email to get started
@@ -1220,10 +1256,15 @@ export default function Home() {
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="flex items-center gap-2 rounded-lg bg-[#e6e9ef] px-3 py-2 text-sm font-medium text-[#323338] hover:bg-[#c5c7d0]"
+                disabled={isSigningOut}
+                className="flex items-center gap-2 rounded-lg bg-[#e6e9ef] px-3 py-2 text-sm font-medium text-[#323338] hover:bg-[#c5c7d0] disabled:opacity-70"
               >
-                <LogOut className="h-4 w-4" />
-                Sign out
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4" />
+                )}
+                {isSigningOut ? "Signing out…" : "Sign out"}
               </button>
             </div>
           ) : null}
@@ -1284,9 +1325,13 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={handleHouseholdNameSave}
-                      className="rounded-lg bg-[#8a9a5b] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#6b7b4b]"
+                      disabled={isUpdatingHouseholdName}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-70"
                     >
-                      Save
+                      {isUpdatingHouseholdName ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : null}
+                      {isUpdatingHouseholdName ? "Saving…" : "Save"}
                     </button>
                     <button
                       type="button"
@@ -1391,8 +1436,12 @@ export default function Home() {
                       disabled={isAddingCategory || !newCategoryName.trim()}
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-medium text-white/80 hover:bg-white/15 disabled:opacity-50"
                     >
-                      <FolderPlus className="h-4 w-4 shrink-0" />
-                      Add board
+                      {isAddingCategory ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                      ) : (
+                        <FolderPlus className="h-4 w-4 shrink-0" />
+                      )}
+                      {isAddingCategory ? "Adding…" : "Add board"}
                     </button>
                   </div>
                 </div>
@@ -1437,7 +1486,8 @@ export default function Home() {
                       key={w.id}
                       type="button"
                       onClick={() => handleSwitchWorkspace(w)}
-                      className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition ${
+                      disabled={isSwitchingWorkspace}
+                      className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-left text-sm transition disabled:opacity-70 ${
                         w.id === householdId
                           ? "border-[#8a9a5b] bg-[#8a9a5b]/10 text-[#323338]"
                           : "border-[#e2e6e3] bg-[#f8f9f6] text-[#323338]/80 hover:border-[#8a9a5b]/50"
@@ -1473,8 +1523,9 @@ export default function Home() {
                     type="button"
                     onClick={handleJoinFromSettings}
                     disabled={isJoining || !joinWorkspaceInput.trim()}
-                    className="shrink-0 rounded-lg bg-[#8a9a5b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-50"
+                    className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#8a9a5b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-50"
                   >
+                    {isJoining && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isJoining ? "Joining…" : "Join"}
                   </button>
                 </div>
@@ -1517,8 +1568,9 @@ export default function Home() {
                   type="button"
                   onClick={handleSendInvite}
                   disabled={isInviting || !inviteEmail.trim()}
-                  className="flex shrink-0 items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
                 >
+                  {isInviting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {isInviting ? "Sending…" : "Send invite"}
                 </button>
               </div>
@@ -1620,13 +1672,18 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    handleDeleteTask(deleteTask);
-                    setDeleteTask(null);
-                  }}
-                  className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                  onClick={() => handleDeleteTask(deleteTask)}
+                  disabled={isDeletingTask}
+                  className="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-70"
                 >
-                  Delete
+                  {isDeletingTask ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Deleting…
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
                 </button>
               </div>
             </div>
@@ -1671,9 +1728,17 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => handleRemoveMember(deleteMember)}
-                  className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                  disabled={isRemovingMember}
+                  className="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-70"
                 >
-                  Remove
+                  {isRemovingMember ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Removing…
+                    </>
+                  ) : (
+                    "Remove"
+                  )}
                 </button>
               </div>
             </div>
@@ -1715,10 +1780,18 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDeleteCategory(deleteCategoryId)}
-                  className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                  onClick={() => deleteCategoryId && handleDeleteCategory(deleteCategoryId)}
+                  disabled={isDeletingCategory}
+                  className="inline-flex items-center gap-2 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-70"
                 >
-                  Delete
+                  {isDeletingCategory ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Deleting…
+                    </>
+                  ) : (
+                    "Delete"
+                  )}
                 </button>
               </div>
             </div>
@@ -1750,10 +1823,15 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 rounded-lg bg-[#e6e9ef] px-3 py-2 text-sm font-medium text-[#323338] hover:bg-[#c5c7d0]"
+                  disabled={isSigningOut}
+                  className="flex items-center gap-2 rounded-lg bg-[#e6e9ef] px-3 py-2 text-sm font-medium text-[#323338] hover:bg-[#c5c7d0] disabled:opacity-70"
                 >
-                  <LogOut className="h-4 w-4" />
-                  Sign out
+                  {isSigningOut ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                  {isSigningOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
             ) : null}
@@ -1797,7 +1875,8 @@ export default function Home() {
 
           <div className="flex flex-1 flex-col p-6">
             {isInitializing ? (
-              <div className="rounded-lg bg-white p-8 shadow-sm">
+              <div className="flex flex-col items-center gap-3 rounded-lg bg-white p-8 shadow-sm">
+                <Loader2 className="h-8 w-8 animate-spin text-[#8a9a5b]" />
                 <p className="text-sm text-[#323338]/60">Loading your workspace...</p>
               </div>
             ) : !sessionEmail || !isAllowed ? (
@@ -1879,8 +1958,9 @@ export default function Home() {
                       type="button"
                       onClick={handleJoinWithLink}
                       disabled={isJoining || !joinLinkInput.trim()}
-                      className="rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
                     >
+                      {isJoining && <Loader2 className="h-4 w-4 animate-spin" />}
                       {isJoining ? "Joining…" : "Join home"}
                     </button>
                   </div>
@@ -1912,10 +1992,17 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={handleCreateHome}
-                      disabled={!newHomeName.trim()}
-                      className="rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
+                      disabled={!newHomeName.trim() || isCreatingHome}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#8a9a5b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:opacity-50"
                     >
-                      Create home
+                      {isCreatingHome ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Creating…
+                        </>
+                      ) : (
+                        "Create home"
+                      )}
                     </button>
                   </div>
                 )}
@@ -1933,7 +2020,8 @@ export default function Home() {
                     </p>
                   </div>
                 ) : isLoadingTasks ? (
-                  <div className="rounded-lg bg-white p-8 shadow-sm">
+                  <div className="flex flex-col items-center gap-3 rounded-lg bg-white p-8 shadow-sm">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#8a9a5b]" />
                     <p className="text-sm text-[#323338]/60">Loading items...</p>
                   </div>
                 ) : tasks.length === 0 ? (
@@ -2181,8 +2269,12 @@ export default function Home() {
               disabled={isSaving || !newTask.trim()}
               className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-[#8a9a5b] px-5 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Plus className="h-4 w-4" />
-              Add
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
+              {isSaving ? "Adding…" : "Add"}
             </button>
           </div>
         </form>
