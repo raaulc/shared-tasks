@@ -572,34 +572,34 @@ export default function Home() {
           event: "*",
           schema: "public",
           table: "tasks",
-          filter: `household_id=eq.${householdId}`,
         },
         (payload) => {
-          const task = payload.new as Task | undefined;
-          const oldTask = payload.old as Task | undefined;
-          if (selectedCategoryId && task?.category_id !== selectedCategoryId && oldTask?.category_id !== selectedCategoryId) {
-            if (payload.eventType === "INSERT") return;
-            if (payload.eventType === "DELETE") return;
+          const eventType = payload.eventType;
+          const newRecord = payload.new as Task | undefined;
+
+          if (eventType === "INSERT") {
+            if (newRecord?.household_id !== householdId) return;
+            if (selectedCategoryId && newRecord.category_id !== selectedCategoryId) return;
+            setTasks((current) => [newRecord, ...current]);
+            return;
           }
-          setTasks((current) => {
-            const eventType = payload.eventType;
-            if (eventType === "INSERT") {
-              const newTask = payload.new as Task;
-              if (selectedCategoryId && newTask.category_id !== selectedCategoryId) return current;
-              return [newTask, ...current];
-            }
-            if (eventType === "UPDATE") {
-              const updated = payload.new as Task;
-              if (selectedCategoryId && updated.category_id !== selectedCategoryId) {
-                return current.filter((t) => t.id !== updated.id);
+          if (eventType === "UPDATE") {
+            if (newRecord?.household_id !== householdId) return;
+            setTasks((current) => {
+              if (selectedCategoryId && newRecord.category_id !== selectedCategoryId) {
+                return current.filter((t) => t.id !== newRecord.id);
               }
-              return current.map((t) => (t.id === updated.id ? updated : t));
+              return current.map((t) => (t.id === newRecord.id ? newRecord : t));
+            });
+            return;
+          }
+          if (eventType === "DELETE") {
+            const oldData = (payload.old ?? (payload as { oldRecord?: unknown }).oldRecord) as Record<string, unknown> | undefined;
+            const deletedId = (oldData?.id ?? (oldData?.record as Record<string, unknown>)?.id) as string | undefined;
+            if (deletedId) {
+              setTasks((current) => current.filter((t) => t.id !== deletedId));
             }
-            if (eventType === "DELETE") {
-              return current.filter((task) => task.id !== (payload.old as { id: string }).id);
-            }
-            return current;
-          });
+          }
         },
       )
       .subscribe();
