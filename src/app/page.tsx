@@ -75,6 +75,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+  const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [sortFilter, setSortFilter] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<"date" | "assignment">("date");
   const [inviteEmail, setInviteEmail] = useState("");
@@ -1198,6 +1199,54 @@ export default function Home() {
           </div>
         </aside>
 
+        {/* Delete task confirmation modal */}
+        {deleteTask ? (
+          <>
+            <div
+              className="fixed inset-0 z-[60] bg-black/50"
+              onClick={() => setDeleteTask(null)}
+              aria-hidden="true"
+            />
+            <div
+              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100">
+                  <Trash2 className="h-5 w-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-[#323338]">
+                    Delete item?
+                  </h3>
+                  <p className="mt-1 text-sm text-[#323338]/60">
+                    "{deleteTask.title}" will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTask(null)}
+                  className="rounded-lg px-4 py-2 text-sm font-medium text-[#323338] hover:bg-[#f6f7fb]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteTask(deleteTask);
+                    setDeleteTask(null);
+                  }}
+                  className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </>
+        ) : null}
+
         {/* Delete board confirmation modal */}
         {deleteCategoryId ? (
           <>
@@ -1477,7 +1526,7 @@ export default function Home() {
                             ) : null}
                             <button
                               type="button"
-                              onClick={() => handleDeleteTask(task)}
+                              onClick={() => setDeleteTask(task)}
                               className="rounded p-1.5 text-[#323338]/50 transition hover:bg-rose-50 hover:text-rose-500"
                               aria-label="Delete"
                             >
