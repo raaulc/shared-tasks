@@ -562,6 +562,20 @@ export default function Home() {
   }, [categories, selectedCategoryId]);
 
   useEffect(() => {
+    if (!householdId || categories.length === 0) return;
+    if (selectedCategoryId) return;
+    const stored = localStorage.getItem(`livelist:board:${householdId}`);
+    if (stored && categories.some((c) => c.id === stored)) {
+      setSelectedCategoryId(stored);
+    }
+  }, [householdId, categories, selectedCategoryId]);
+
+  useEffect(() => {
+    if (!householdId || !selectedCategoryId) return;
+    localStorage.setItem(`livelist:board:${householdId}`, selectedCategoryId);
+  }, [householdId, selectedCategoryId]);
+
+  useEffect(() => {
     if (!householdId) return;
 
     loadTasks(householdId, selectedCategoryId);
