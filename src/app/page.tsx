@@ -50,8 +50,6 @@ const DEFAULT_MEMBER_COLORS = [
   "#6b7b4b", "#9ab06d", "#f9d648", "#7a8f5a", "#a25ddc",
 ];
 
-const ALLOWED_EMAILS = ["rahulcode19@gmail.com", "riddhi.icct@gmail.com"];
-
 export default function Home() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -114,10 +112,7 @@ export default function Home() {
     [members, assigneeValueForMember, getColorForMember],
   );
 
-  const isAllowed = useMemo(() => {
-    if (!sessionEmail) return false;
-    return ALLOWED_EMAILS.includes(sessionEmail);
-  }, [sessionEmail]);
+  const isAllowed = useMemo(() => !!sessionEmail, [sessionEmail]);
 
   const [appOrigin, setAppOrigin] = useState("");
 
@@ -517,14 +512,6 @@ export default function Home() {
     if (!sessionEmail || !userId) {
       setTasks([]);
       setHouseholdId(null);
-      return;
-    }
-
-    if (!ALLOWED_EMAILS.includes(sessionEmail)) {
-      setMessage("Access is restricted to approved family emails.");
-      supabase.auth.signOut();
-      setSessionEmail(null);
-      setUserId(null);
       return;
     }
 
