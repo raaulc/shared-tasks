@@ -1181,21 +1181,21 @@ export default function Home() {
   if (!sessionEmail || !isAllowed) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#f0f2ed] via-white to-[#f8f9f6] text-[#323338]">
-        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-6 py-16">
-          <div className="text-center">
-            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-4">
-              <List className="h-12 w-12 text-[#8a9a5b]" />
+        <div className="mx-auto flex min-h-screen max-w-4xl flex-col items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+          <div className="w-full max-w-xl text-center">
+            <div className="mb-4 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-3 sm:mb-6 sm:p-4">
+              <List className="h-10 w-10 text-[#8a9a5b] sm:h-12 sm:w-12" />
             </div>
-            <h1 className="text-4xl font-bold tracking-tight text-[#323338] sm:text-5xl">
+            <h1 className="text-3xl font-bold tracking-tight text-[#323338] sm:text-4xl md:text-5xl">
               Olivelist
             </h1>
-            <p className="mt-4 text-xl text-[#323338]/70 sm:text-2xl">
+            <p className="mt-3 text-lg text-[#323338]/70 sm:mt-4 sm:text-xl md:text-2xl">
               Shared lists for families. Keep everyone in sync.
             </p>
-            <p className="mt-6 max-w-xl text-[#323338]/60">
+            <p className="mt-4 max-w-xl text-base text-[#323338]/60 sm:mt-6 sm:text-[15px]">
               Create boards, assign tasks, and get things done together. Real-time updates across all your devices.
             </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4 sm:mt-10 sm:gap-6">
               <div className="flex items-center gap-2 text-sm text-[#323338]/60">
                 <CheckCircle2 className="h-5 w-5 text-[#00c875]" />
                 Real-time sync
@@ -1213,7 +1213,7 @@ export default function Home() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isInitializing || isSigningIn}
-              className="mt-12 inline-flex items-center gap-3 rounded-xl bg-[#8a9a5b] px-8 py-4 text-base font-semibold text-white shadow-lg shadow-[#8a9a5b]/25 transition hover:bg-[#6b7b4b] hover:shadow-[#8a9a5b]/30 disabled:opacity-70"
+              className="mt-8 inline-flex items-center gap-3 rounded-xl bg-[#8a9a5b] px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-[#8a9a5b]/25 transition hover:bg-[#6b7b4b] hover:shadow-[#8a9a5b]/30 disabled:opacity-70 sm:mt-12 sm:px-8 sm:py-4"
             >
               {isSigningIn ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
@@ -1233,7 +1233,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#f8f9f6] text-[#323338]">
-      <main className="relative flex min-h-screen w-full flex-col pb-24 md:flex-row">
+        <main className="relative flex min-h-screen w-full flex-col pb-24 md:flex-row">
         <div className="flex items-center justify-between border-b border-[#e2e6e3] bg-white px-4 py-3 md:hidden">
           <button
             type="button"
@@ -1459,7 +1459,7 @@ export default function Home() {
           aria-hidden="true"
         />
         <aside
-          className={`fixed right-0 top-0 z-50 h-full w-80 transform bg-white p-6 shadow-2xl transition md:w-96 ${
+          className={`fixed right-0 top-0 z-50 h-full w-full transform overflow-y-auto bg-white p-6 shadow-2xl transition sm:w-80 sm:max-w-[85vw] md:w-96 ${
             isSettingsOpen ? "translate-x-0" : "translate-x-full"
           }`}
           onClick={(e) => e.stopPropagation()}
@@ -1507,7 +1507,7 @@ export default function Home() {
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[#323338]/50">
                   Join another workspace
                 </p>
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
                     value={joinWorkspaceInput}
@@ -1517,13 +1517,13 @@ export default function Home() {
                     }}
                     onKeyDown={(e) => e.key === "Enter" && handleJoinFromSettings()}
                     placeholder="Paste invite link or code"
-                    className="flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
+                    className="min-w-0 flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2.5 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
                   />
                   <button
                     type="button"
                     onClick={handleJoinFromSettings}
                     disabled={isJoining || !joinWorkspaceInput.trim()}
-                    className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#8a9a5b] px-3 py-2 text-sm font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-50"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#8a9a5b] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#6b7b4b] disabled:opacity-50 sm:flex-initial"
                   >
                     {isJoining && <Loader2 className="h-4 w-4 animate-spin" />}
                     {isJoining ? "Joining…" : "Join"}
@@ -1552,7 +1552,7 @@ export default function Home() {
                   Copy
                 </button>
               </div>
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   type="email"
                   placeholder="Email address"
@@ -1562,7 +1562,7 @@ export default function Home() {
                     setInviteError(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
-                  className="flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
+                  className="min-w-0 flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2.5 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-1 focus:ring-[#8a9a5b]"
                 />
                 <button
                   type="button"
@@ -1646,7 +1646,7 @@ export default function Home() {
               aria-hidden="true"
             />
             <div
-              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3">
@@ -1699,7 +1699,7 @@ export default function Home() {
               aria-hidden="true"
             />
             <div
-              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3">
@@ -1754,7 +1754,7 @@ export default function Home() {
               aria-hidden="true"
             />
             <div
-              className="fixed left-1/2 top-1/2 z-[70] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3">
@@ -1799,9 +1799,9 @@ export default function Home() {
         ) : null}
 
         <section className="flex min-h-screen flex-1 flex-col bg-[#f8f9f6]">
-          <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#e2e6e3] bg-white px-6 py-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold text-[#323338]">
+          <header className="sticky top-0 z-30 flex min-h-0 items-center justify-between gap-3 border-b border-[#e2e6e3] bg-white px-4 py-3 sm:px-6 sm:py-4">
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-lg font-semibold text-[#323338] sm:text-xl">
                 {categories.find((c) => c.id === selectedCategoryId)?.name ?? "Shared Lists"}
               </h1>
               {selectedCategoryId && (
@@ -1838,14 +1838,14 @@ export default function Home() {
           </header>
 
           {message ? (
-            <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            <div className="mx-4 mt-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 sm:mx-6">
               <Sparkles className="h-4 w-4 shrink-0" />
-              {message}
+              <span className="min-w-0 break-words">{message}</span>
             </div>
           ) : null}
 
           {householdId && showShareLink && inviteLink ? (
-            <div className="mx-6 mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-[#8a9a5b]/30 bg-[#8a9a5b]/5 px-4 py-3">
+            <div className="mx-4 mt-4 flex flex-col gap-3 rounded-lg border border-[#8a9a5b]/30 bg-[#8a9a5b]/5 px-4 py-3 sm:mx-6 sm:flex-row sm:flex-wrap sm:items-center">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <Link2 className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
                 <div className="min-w-0 flex-1">
@@ -1853,11 +1853,11 @@ export default function Home() {
                   <p className="mt-0.5 truncate text-xs text-[#323338]/70">{inviteLink}</p>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b7b4b]"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#8a9a5b] px-3 py-2.5 text-xs font-semibold text-white hover:bg-[#6b7b4b]"
                 >
                   <Copy className="h-3.5 w-3.5" />
                   Copy link
@@ -1865,7 +1865,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setShowShareLink(false)}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-[#323338]/70 hover:bg-[#e2e6e3]"
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-[#323338]/70 hover:bg-[#e2e6e3]"
                 >
                   Dismiss
                 </button>
@@ -1873,7 +1873,7 @@ export default function Home() {
             </div>
           ) : null}
 
-          <div className="flex flex-1 flex-col p-6">
+          <div className="flex flex-1 flex-col p-4 sm:p-6">
             {isInitializing ? (
               <div className="flex flex-col items-center gap-3 rounded-lg bg-white p-8 shadow-sm">
                 <Loader2 className="h-8 w-8 animate-spin text-[#8a9a5b]" />
@@ -1895,7 +1895,7 @@ export default function Home() {
                 </button>
               </div>
             ) : !householdId ? (
-              <div className="mx-auto flex max-w-md flex-col gap-6 rounded-xl border border-[#e2e6e3] bg-white p-8 shadow-sm">
+              <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-xl border border-[#e2e6e3] bg-white p-6 shadow-sm sm:p-8">
                 <div className="text-center">
                   <div className="mx-auto mb-4 inline-flex items-center justify-center rounded-2xl bg-[#8a9a5b]/10 p-3">
                     <HomeIcon className="h-10 w-10 text-[#8a9a5b]" />
@@ -1913,20 +1913,24 @@ export default function Home() {
                     <button
                       type="button"
                       onClick={() => setSetHomeStep("join")}
-                      className="flex items-center gap-3 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5"
+                      className="flex flex-col gap-1 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5 sm:flex-row sm:items-center sm:gap-3"
                     >
-                      <Link2 className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
-                      <span className="font-medium text-[#323338]">Join a home</span>
-                      <span className="text-sm text-[#323338]/50">Paste an invite link</span>
+                      <div className="flex items-center gap-3">
+                        <Link2 className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                        <span className="font-medium text-[#323338]">Join a home</span>
+                      </div>
+                      <span className="text-sm text-[#323338]/50 sm:ml-8">Paste an invite link</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setSetHomeStep("create")}
-                      className="flex items-center gap-3 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5"
+                      className="flex flex-col gap-1 rounded-xl border border-[#e2e6e3] bg-[#f8f9f6] px-4 py-4 text-left transition hover:border-[#8a9a5b] hover:bg-[#8a9a5b]/5 sm:flex-row sm:items-center sm:gap-3"
                     >
-                      <HomeIcon className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
-                      <span className="font-medium text-[#323338]">Create a new home</span>
-                      <span className="text-sm text-[#323338]/50">Start from scratch</span>
+                      <div className="flex items-center gap-3">
+                        <HomeIcon className="h-5 w-5 shrink-0 text-[#8a9a5b]" />
+                        <span className="font-medium text-[#323338]">Create a new home</span>
+                      </div>
+                      <span className="text-sm text-[#323338]/50 sm:ml-8">Start from scratch</span>
                     </button>
                   </div>
                 ) : setHomeStep === "join" ? (
@@ -2036,16 +2040,16 @@ export default function Home() {
                   </div>
                 ) : (
                   <>
-                    <div className="mb-4 flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <label htmlFor="filter-assignee" className="text-xs font-medium text-[#323338]/60">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <label htmlFor="filter-assignee" className="shrink-0 text-xs font-medium text-[#323338]/60">
                           Assigned to
                         </label>
                         <select
                           id="filter-assignee"
                           value={sortFilter}
                           onChange={(e) => setSortFilter(e.target.value)}
-                          className="rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
+                          className="min-w-0 flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2.5 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20 sm:flex-initial"
                         >
                           <option value="all">All</option>
                           {members.map((m) => {
@@ -2059,8 +2063,8 @@ export default function Home() {
                           <option value="unassigned">Unassigned</option>
                         </select>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <label htmlFor="sort-order" className="text-xs font-medium text-[#323338]/60">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <label htmlFor="sort-order" className="shrink-0 text-xs font-medium text-[#323338]/60">
                           Sort by
                         </label>
                         <select
@@ -2069,7 +2073,7 @@ export default function Home() {
                           onChange={(e) =>
                             setSortOrder(e.target.value as "date" | "assignment")
                           }
-                          className="rounded-lg border border-[#e2e6e3] bg-white px-3 py-2 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
+                          className="min-w-0 flex-1 rounded-lg border border-[#e2e6e3] bg-white px-3 py-2.5 text-sm text-[#323338] focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20 sm:flex-initial"
                         >
                           <option value="date">Newest first</option>
                           <option value="assignment">By assignee</option>
@@ -2094,12 +2098,12 @@ export default function Home() {
                     filteredAndSortedTasks.map((task) => (
                       <div
                         key={task.id}
-                        className="group flex items-center gap-4 rounded-xl border border-[#e2e6e3] bg-white px-4 py-3 shadow-sm transition hover:border-[#c5cac6] hover:shadow-md"
+                        className="group flex flex-col gap-3 rounded-xl border border-[#e2e6e3] bg-white px-4 py-3 shadow-sm transition hover:border-[#c5cac6] hover:shadow-md sm:flex-row sm:items-center sm:gap-4"
                       >
                         <button
                           type="button"
                           onClick={() => handleToggleTask(task)}
-                          className="flex shrink-0 items-center gap-3 text-left"
+                          className="flex min-w-0 shrink-0 items-start gap-3 text-left sm:items-center"
                         >
                           {task.is_completed ? (
                             <CheckCircle2 className="h-5 w-5 text-[#00c875]" />
@@ -2131,7 +2135,7 @@ export default function Home() {
                                 }
                               }}
                               autoFocus
-                              className="min-w-[120px] rounded border border-[#8a9a5b] bg-white px-2 py-1 text-sm font-medium text-[#323338] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/40"
+                              className="min-w-0 max-w-full flex-1 rounded border border-[#8a9a5b] bg-white px-2 py-1 text-sm font-medium text-[#323338] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/40 sm:min-w-[120px] sm:flex-initial"
                             />
                           ) : (
                             <span
@@ -2160,7 +2164,7 @@ export default function Home() {
                             </span>
                           )}
                         </button>
-                        <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 border-t border-[#e2e6e3] pt-3 sm:border-t-0 sm:pt-0">
                           <select
                             value={task.assigned_to ?? ""}
                             onChange={(e) => {
@@ -2255,19 +2259,20 @@ export default function Home() {
         <form
           onSubmit={handleSubmit}
           className="fixed bottom-0 left-0 right-0 border-t border-[#e2e6e3] bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] md:left-64"
+          style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
         >
-          <div className="mx-auto flex max-w-3xl items-center gap-3">
+          <div className="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
             <input
               type="text"
               value={newTask}
               onChange={(event) => setNewTask(event.target.value)}
               placeholder="Add an item..."
-              className="h-11 flex-1 rounded-lg border border-[#e2e6e3] bg-[#f8f9f6] px-4 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
+              className="h-11 min-w-0 flex-1 rounded-lg border border-[#e2e6e3] bg-[#f8f9f6] px-4 text-sm text-[#323338] placeholder:text-[#323338]/50 focus:border-[#8a9a5b] focus:outline-none focus:ring-2 focus:ring-[#8a9a5b]/20"
             />
             <button
               type="submit"
               disabled={isSaving || !newTask.trim()}
-              className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-[#8a9a5b] px-5 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 min-w-[44px] shrink-0 items-center justify-center gap-2 rounded-lg bg-[#8a9a5b] px-4 text-sm font-semibold text-white transition hover:bg-[#6b7b4b] disabled:cursor-not-allowed disabled:opacity-50 sm:px-5"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
