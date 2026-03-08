@@ -86,6 +86,8 @@ export default function Home() {
   const [deleteMember, setDeleteMember] = useState<Member | null>(null);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
   const [setHomeStep, setSetHomeStep] = useState<"choose" | "join" | "create">("choose");
   const [joinLinkInput, setJoinLinkInput] = useState("");
   const [newHomeName, setNewHomeName] = useState("");
@@ -421,6 +423,42 @@ export default function Home() {
       setIsAddingCategory(false);
     },
     [householdId],
+  );
+
+  const updateCategoryName = useCallback(
+    async (categoryId: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed) {
+        setEditingCategoryId(null);
+        setEditingCategoryName("");
+        return;
+      }
+      const cat = categories.find((c) => c.id === categoryId);
+      if (!cat || cat.name === trimmed) {
+        setEditingCategoryId(null);
+        setEditingCategoryName("");
+        return;
+      }
+      setMessage(null);
+      setCategories((prev) =>
+        prev.map((c) => (c.id === categoryId ? { ...c, name: trimmed } : c)),
+      );
+      setEditingCategoryId(null);
+      setEditingCategoryName("");
+
+      const { error } = await supabase
+        .from("categories")
+        .update({ name: trimmed })
+        .eq("id", categoryId);
+
+      if (error) {
+        setMessage(`Unable to rename board: ${error.message}`);
+        setCategories((prev) =>
+          prev.map((c) => (c.id === categoryId ? { ...c, name: cat.name } : c)),
+        );
+      }
+    },
+    [categories],
   );
 
   const loadMembers = useCallback(async (household: string) => {
@@ -1389,11 +1427,12 @@ export default function Home() {
                     >
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          if (editingCategoryId === cat.id) return;
                           setSelectedCategoryId(
                             selectedCategoryId === cat.id ? null : cat.id,
-                          )
-                        }
+                          );
+                        }}
                         className={`flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2.5 text-left text-sm font-medium transition ${
                           selectedCategoryId === cat.id
                             ? "text-white"
@@ -1401,19 +1440,59 @@ export default function Home() {
                         }`}
                       >
                         <List className="h-4 w-4 shrink-0 opacity-80" />
-                        <span className="truncate">{cat.name}</span>
+                        {editingCategoryId === cat.id ? (
+                          <input
+                            type="text"
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                updateCategoryName(cat.id, editingCategoryName);
+                              }
+                              if (e.key === "Escape") {
+                                setEditingCategoryId(null);
+                                setEditingCategoryName("");
+                              }
+                            }}
+                            onBlur={() =>
+                              updateCategoryName(cat.id, editingCategoryName)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="min-w-0 flex-1 rounded border-0 bg-white/20 px-1.5 py-0.5 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-white/50"
+                          />
+                        ) : (
+                          <span className="truncate">{cat.name}</span>
+                        )}
                       </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteCategoryId(cat.id);
-                        }}
-                        className="shrink-0 rounded p-1.5 text-white/40 transition hover:bg-white/20 hover:text-white"
-                        aria-label="Delete board"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {editingCategoryId !== cat.id && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCategoryId(cat.id);
+                              setEditingCategoryName(cat.name);
+                            }}
+                            className="shrink-0 rounded p-1.5 text-white/40 transition hover:bg-white/20 hover:text-white"
+                            aria-label="Edit board name"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteCategoryId(cat.id);
+                            }}
+                            className="shrink-0 rounded p-1.5 text-white/40 transition hover:bg-white/20 hover:text-white"
+                            aria-label="Delete board"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   ))}
                   <div className="mt-1 flex flex-col gap-2">
